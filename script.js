@@ -1,7 +1,7 @@
 const formLink = "https://docs.google.com/forms/d/e/1FAIpQLSfjj3-9zh9VmOFR9z0P0V_Jv3j3rnPBdHEAu3h1KqMutKj4mQ/viewform?usp=sharing&ouid=111579897869090458060";
 function onScanSuccess(qrCodeMessage) {
 
-let device = devices.find(d => d.id === qrCodeMessage);
+let device = devices.find(d => d.id.trim() === qrCodeMessage.trim());
 
 if(!device){
 document.getElementById("result").innerHTML =
