@@ -1,49 +1,62 @@
-const formLink = "https://docs.google.com/forms/d/e/1FAIpQLSfjj3-9zh9VmOFR9z0P0V_Jv3j3rnPBdHEAu3h1KqMutKj4mQ/viewform?usp=sharing&ouid=111579897869090458060";
-function startScan() {
+const formLink="https://forms.gle/swQgBUYASe1Hinaw7";
 
-const html5QrCode = new Html5Qrcode("reader");
+let lastDevice="";
+
+function startScan(){
+
+const html5QrCode=new Html5Qrcode("reader");
 
 html5QrCode.start(
-{ facingMode: "environment" },
-{
-fps: 10,
-qrbox: 250
-},
-(qrCodeMessage) => {
+{facingMode:"environment"},
+{fps:10,qrbox:200},
+(qrCodeMessage)=>{
 
-document.getElementById("result").innerHTML =
-checkDevice(qrCodeMessage);
+lastDevice=qrCodeMessage.trim();
+
+checkDevice(lastDevice);
 
 html5QrCode.stop();
 
 }
-).catch(err => {
-console.log("Camera lỗi:", err);
-});
+);
+
+}
+
 function checkDevice(deviceId){
 
-const device = devices[deviceId];
+const device=devices[deviceId];
 
 if(!device){
-document.getElementById("result").innerHTML = "❌ Không tìm thấy thiết bị";
+document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
 return;
 }
 
-let statusText = "";
+let status="";
 
-if(device.status === "free"){
-statusText = "🟢 Thiết bị trống";
+if(device.status==="free"){
+status="🟢 Thiết bị trống";
 }
 
-if(device.status === "using"){
-statusText = "🟡 Thiết bị đang sử dụng";
+if(device.status==="using"){
+status="🟡 Thiết bị đang sử dụng";
 }
 
-if(device.status === "broken"){
-statusText = "🔴 Thiết bị bị hỏng";
+if(device.status==="broken"){
+status="🔴 Thiết bị bị hỏng";
 }
 
-document.getElementById("result").innerHTML =
-"Thiết bị: " + device.name + "<br>" + statusText;
+document.getElementById("result").innerHTML=
+"Thiết bị: "+device.name+"<br>"+status;
+
+}
+
+function report(){
+
+if(lastDevice===""){
+alert("Hãy quét thiết bị trước");
+return;
+}
+
+window.open(formLink,"_blank");
 
 }
