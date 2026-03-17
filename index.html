@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="vi">
-
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
 <title>QR Lab Manager</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
@@ -10,97 +11,108 @@
 <style>
 
 body{
-margin:0;
 font-family:Arial;
-background:#f4f6fb;
+margin:0;
+background:#eef1f7;
 }
 
-.header{
-background:#4f6df5;
+header{
+background:linear-gradient(90deg,#4f6df5,#6a8cff);
 color:white;
 padding:20px;
 text-align:center;
 }
 
 .container{
-max-width:900px;
+padding:15px;
+max-width:600px;
 margin:auto;
-padding:20px;
 }
 
 .card{
 background:white;
-padding:20px;
-border-radius:10px;
-box-shadow:0 5px 15px rgba(0,0,0,0.1);
-margin-bottom:20px;
+border-radius:12px;
+padding:15px;
+margin-top:15px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
 }
 
 button{
+width:100%;
+padding:14px;
 border:none;
-padding:10px 15px;
-border-radius:6px;
+border-radius:8px;
+font-size:16px;
 cursor:pointer;
 }
 
-.scan-btn{
-background:#3498db;
+.scan{
+background:#4f6df5;
 color:white;
-width:100%;
-margin-bottom:10px;
 }
 
-.report-btn{
-background:#ff5e5e;
+.report{
+background:#e74c3c;
 color:white;
-width:100%;
+margin-top:10px;
 }
 
 table{
 width:100%;
 border-collapse:collapse;
+margin-top:10px;
 }
 
-th,td{
-border-bottom:1px solid #ddd;
-padding:10px;
-text-align:left;
+th{
+background:#4f6df5;
+color:white;
+padding:8px;
 }
 
-.status-table td{
-font-weight:bold;
+td{
+padding:8px;
+text-align:center;
+border-bottom:1px solid #eee;
 }
 
-@media(max-width:600px){
-
-.container{
-padding:10px;
+#reader{
+margin-top:10px;
 }
 
+.stat{
+display:flex;
+justify-content:space-around;
+font-size:18px;
+margin-top:10px;
 }
 
 </style>
-
 </head>
 
 <body>
 
-<div class="header">
+<header>
 <h2>🔬 QR Lab Manager</h2>
-<p>Hệ thống quản lý thiết bị phòng Lab</p>
-</div>
+<p>Quản lý thiết bị phòng Lab</p>
+</header>
 
 <div class="container">
 
 <div class="card">
 
-<button class="scan-btn" onclick="startScan()">📷 Quét QR thiết bị</button>
+<button class="scan" onclick="startScan()">
+📷 Quét QR thiết bị
+</button>
 
-<div id="reader" style="width:250px;margin:auto"></div>
+<div id="reader"></div>
 
-<div id="result" style="margin-top:15px;font-weight:bold"></div>
+<div id="result">
+Chưa quét thiết bị
+</div>
 
-<button class="report-btn" onclick="report()">⚠️ Báo hỏng thiết bị</button>
+<button class="report" onclick="report()">
+⚠️ Báo hỏng thiết bị
+</button>
 
 </div>
 
@@ -108,29 +120,59 @@ padding:10px;
 
 <h3>📊 Trạng thái thiết bị</h3>
 
-<table class="status-table">
+<table>
 
+<thead>
 <tr>
 <th>Thiết bị</th>
 <th>Trạng thái</th>
 </tr>
+</thead>
 
-<tr>
-<td>TB001</td>
-<td>🟢 Trống</td>
-</tr>
-
-<tr>
-<td>TB002</td>
-<td>🟡 Đang sử dụng</td>
-</tr>
-
-<tr>
-<td>TB003</td>
-<td>🔴 Bị hỏng</td>
-</tr>
+<tbody id="deviceTable"></tbody>
 
 </table>
+
+</div>
+
+<div class="card">
+
+<h3>📅 Đặt lịch thiết bị</h3>
+
+<select id="deviceSelect">
+<option>TB001</option>
+<option>TB002</option>
+<option>TB003</option>
+</select>
+
+<input type="datetime-local" id="time">
+
+<button onclick="bookDevice()">Đặt lịch</button>
+
+</div>
+
+<div class="card">
+
+<h3>📈 Thống kê sử dụng</h3>
+
+<div class="stat">
+
+<div>
+<b id="totalScan">0</b><br>
+Lượt quét
+</div>
+
+<div>
+<b id="totalUse">0</b><br>
+Đang dùng
+</div>
+
+<div>
+<b id="totalFree">0</b><br>
+Thiết bị trống
+</div>
+
+</div>
 
 </div>
 
@@ -140,10 +182,12 @@ padding:10px;
 
 <table>
 
+<thead>
 <tr>
 <th>Thiết bị</th>
 <th>Thời gian</th>
 </tr>
+</thead>
 
 <tbody id="historyTable"></tbody>
 
@@ -153,8 +197,173 @@ padding:10px;
 
 </div>
 
-<script src="devices.js"></script>
-<script src="script.js"></script>
+<script>
+
+const formLink="https://forms.gle/swQgBUYASe1Hinaw7";
+
+const sheetURL=
+"https://opensheet.elk.sh/1ruY2FegopOUprLRQ3WV0UfLKFwLPvU-wOysibaBoWvI/Sheet1";
+
+let devices={};
+let history=[];
+let lastDevice="";
+let totalScan=0;
+
+loadSheet();
+
+async function loadSheet(){
+
+const res=await fetch(sheetURL);
+const data=await res.json();
+
+devices={};
+
+data.forEach(row=>{
+
+devices[row.id]={
+name:row.name,
+status:row.status
+};
+
+});
+
+renderDevices();
+
+}
+
+function renderDevices(){
+
+let table="";
+let free=0;
+let using=0;
+
+for(let id in devices){
+
+let s=devices[id].status;
+  let status="";
+
+if(s==="free"){status="🟢 Trống";free++}
+if(s==="using"){status="🟡 Đang sử dụng";using++}
+if(s==="broken")status="🔴 Hỏng";
+
+table+=`
+<tr>
+<td>${id}</td>
+<td>${status}</td>
+</tr>
+`;
+
+}
+
+document.getElementById("deviceTable").innerHTML=table;
+
+document.getElementById("totalUse").innerText=using;
+document.getElementById("totalFree").innerText=free;
+
+}
+
+function startScan(){
+
+const html5QrCode=new Html5Qrcode("reader");
+
+html5QrCode.start(
+{facingMode:"environment"},
+{fps:10,qrbox:250},
+
+(qrCodeMessage)=>{
+
+lastDevice=qrCodeMessage.trim();
+
+checkDevice(lastDevice);
+
+html5QrCode.stop();
+
+}
+);
+
+}
+
+function checkDevice(id){
+
+const device=devices[id];
+
+if(!device){
+
+document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
+return;
+
+}
+
+let status="";
+
+if(device.status==="free")status="🟢 Trống";
+if(device.status==="using")status="🟡 Đang sử dụng";
+if(device.status==="broken")status="🔴 Hỏng";
+
+document.getElementById("result").innerHTML=
+"<b>"+device.name+"</b><br>"+status;
+
+devices[id].status="using";
+
+totalScan++;
+
+document.getElementById("totalScan").innerText=totalScan;
+
+history.unshift({
+
+device:id,
+time:new Date().toLocaleString()
+
+});
+
+updateHistory();
+renderDevices();
+
+}
+
+function updateHistory(){
+
+let table="";
+
+history.forEach(h=>{
+
+table+=`
+<tr>
+<td>${h.device}</td>
+<td>${h.time}</td>
+</tr>
+`;
+
+});
+
+document.getElementById("historyTable").innerHTML=table;
+
+}
+
+function report(){
+
+if(lastDevice===""){
+
+alert("Quét thiết bị trước");
+
+return;
+
+}
+
+window.open(formLink);
+
+}
+
+function bookDevice(){
+
+let device=document.getElementById("deviceSelect").value;
+let time=document.getElementById("time").value;
+
+alert("Đã đặt "+device+" lúc "+time);
+
+}
+
+</script>
 
 </body>
 </html>
