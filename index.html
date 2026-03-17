@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+<meta charset="UTF-8">
+<title>QR Lab Manager</title>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f2f5ff;
+text-align:center;
+padding-top:80px;
+}
+
+button{
+width:240px;
+height:65px;
+margin:10px;
+font-size:18px;
+border:none;
+border-radius:25px;
+color:white;
+cursor:pointer;
+}
+
+.scan{background:#4A6CF7;}
+.report{background:#FF5A5F;}
+
+#reader{
+width:300px;
+margin:auto;
+margin-top:30px;
+}
+
+#result{
+margin-top:20px;
+font-size:20px;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h1>QR Lab Manager</h1>
+
+<button class="scan" onclick="startScan()">📷 Quét QR thiết bị</button>
+
+<div id="reader"></div>
+
+<div id="result"></div>
+
+<button class="report" onclick="report()">⚠️ Báo hỏng thiết bị</button>
+
+<script>
+
+/* Danh sách thiết bị */
+
+let devices = {
+
+"PC01":{status:"free"},
+"PC02":{status:"busy"},
+"PC03":{status:"free"},
+"PC04":{status:"broken"}
+
+};
+
+function startScan(){
+
+const html5QrCode = new Html5Qrcode("reader");
+
+html5QrCode.start(
+{ facingMode: "environment" },
+{
+fps:10,
+qrbox:250
+},
+(qrCodeMessage)=>{
+
+checkDevice(qrCodeMessage)
+
+html5QrCode.stop();
+
+}
+);
+
+}
+
+function checkDevice(id){
+
+let device = devices[id]
+
+if(!device){
+
+document.getElementById("result").innerHTML =
+"❌ Không tìm thấy thiết bị"
+
+return
+
+}
+
+if(device.status=="free"){
+
+document.getElementById("result").innerHTML =
+"✅ "+id+" : Có thể sử dụng"
+
+}
+
+if(device.status=="busy"){
+
+document.getElementById("result").innerHTML =
+"⛔ "+id+" : Đã có người sử dụng"
+
+}
+
+if(device.status=="broken"){
+
+document.getElementById("result").innerHTML =
+"⚠️ "+id+" : Máy đang hỏng"
+
+}
+
+}
+
+function report(){
+
+alert("Đã gửi báo hỏng cho quản trị viên")
+
+}
+
+</script>
+
+</body>
+
+</html>
