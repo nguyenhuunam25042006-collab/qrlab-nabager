@@ -1,142 +1,37 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="vi">
 <head>
-
 <meta charset="UTF-8">
 <title>QR Lab Manager</title>
-
-<script src="https://unpkg.com/html5-qrcode"></script>
-
-<style>
-
-body{
-font-family:Arial;
-background:#f2f5ff;
-text-align:center;
-padding-top:80px;
-}
-
-button{
-width:240px;
-height:65px;
-margin:10px;
-font-size:18px;
-border:none;
-border-radius:25px;
-color:white;
-cursor:pointer;
-}
-
-.scan{background:#4A6CF7;}
-.report{background:#FF5A5F;}
-
-#reader{
-width:300px;
-margin:auto;
-margin-top:30px;
-}
-
-#result{
-margin-top:20px;
-font-size:20px;
-font-weight:bold;
-}
-
-</style>
-
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
 </head>
 
 <body>
 
-<h1>QR Lab Manager</h1>
+<div class="container">
 
-<button class="scan" onclick="startScan()">📷 Quét QR thiết bị</button>
+<h1>🔬 QR Lab Manager</h1>
+<p class="subtitle">Hệ thống quản lý thiết bị phòng Lab</p>
 
-<div id="reader"></div>
+<div class="card">
 
-<div id="result"></div>
+<button class="scan-btn" onclick="startScan()">📷 Quét QR thiết bị</button>
 
-<button class="report" onclick="report()">⚠️ Báo hỏng thiết bị</button>
+<div id="result" class="result"></div>
 
-<script>
+<button class="report-btn" onclick="report()">⚠️ Báo hỏng thiết bị</button>
 
-/* Danh sách thiết bị */
+</div>
 
-let devices = {
+<footer>
+Lab Management System • 2026
+</footer>
 
-"PC01":{status:"free"},
-"PC02":{status:"busy"},
-"PC03":{status:"free"},
-"PC04":{status:"broken"}
+</div>
 
-};
-
-function startScan(){
-
-const html5QrCode = new Html5Qrcode("reader");
-
-html5QrCode.start(
-{ facingMode: "environment" },
-{
-fps:10,
-qrbox:250
-},
-(qrCodeMessage)=>{
-
-checkDevice(qrCodeMessage)
-
-html5QrCode.stop();
-
-}
-);
-
-}
-
-function checkDevice(id){
-
-let device = devices[id]
-
-if(!device){
-
-document.getElementById("result").innerHTML =
-"❌ Không tìm thấy thiết bị"
-
-return
-
-}
-
-if(device.status=="free"){
-
-document.getElementById("result").innerHTML =
-"✅ "+id+" : Có thể sử dụng"
-
-}
-
-if(device.status=="busy"){
-
-document.getElementById("result").innerHTML =
-"⛔ "+id+" : Đã có người sử dụng"
-
-}
-
-if(device.status=="broken"){
-
-document.getElementById("result").innerHTML =
-"⚠️ "+id+" : Máy đang hỏng"
-
-}
-
-}
-
-function report(){
-
-alert("Đã gửi báo hỏng cho quản trị viên")
-
-}
-
-</script>
+<script src="devices.js"></script>
+<script src="script.js"></script>
 
 </body>
-
 </html>
