@@ -1,27 +1,28 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
+
 <head>
 
 <meta charset="UTF-8">
-<title>QR Lab Manager PRO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>QR Lab Manager</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
 
 body{
+margin:0;
 font-family:-apple-system,BlinkMacSystemFont;
 background:#f1f3f6;
-margin:0;
 }
 
 header{
-background:linear-gradient(135deg,#4e73df,#224abe);
+background:linear-gradient(135deg,#5a6ff0,#3f51b5);
 color:white;
 text-align:center;
-padding:25px;
+padding:30px 10px;
 }
 
 .container{
@@ -33,9 +34,9 @@ padding:15px;
 .card{
 background:white;
 border-radius:14px;
-padding:15px;
-margin-bottom:15px;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
+padding:16px;
+margin-bottom:16px;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
 button{
@@ -45,8 +46,12 @@ border:none;
 border-radius:10px;
 margin-top:10px;
 font-size:16px;
-background:#4e73df;
+background:#5a6ff0;
 color:white;
+}
+
+button.red{
+background:#e74c3c;
 }
 
 .device{
@@ -59,11 +64,12 @@ border-bottom:1px solid #eee;
 .stat{
 display:flex;
 justify-content:space-between;
-margin-top:8px;
+padding:6px 0;
 }
 
 #reader{
 width:100%;
+margin-top:10px;
 }
 
 </style>
@@ -74,8 +80,8 @@ width:100%;
 
 <header>
 
-<h2>📷 QR Lab Manager</h2>
-<p>Hệ thống quản lý thiết bị phòng Lab</p>
+<h2>🔬 QR Lab Manager</h2>
+<p>Quản lý thiết bị phòng Lab</p>
 
 </header>
 
@@ -91,7 +97,7 @@ width:100%;
 
 <button onclick="openForm()">📅 Đăng ký sử dụng</button>
 
-<button onclick="report()">⚠️ Báo hỏng</button>
+<button class="red" onclick="report()">⚠️ Báo hỏng thiết bị</button>
 
 </div>
 
@@ -100,27 +106,18 @@ width:100%;
 <h3>📊 Trạng thái thiết bị</h3>
 
 <div class="device">
-
 <span>TB001</span>
-
 <span id="TB001"></span>
-
 </div>
 
 <div class="device">
-
 <span>TB002</span>
-
 <span id="TB002"></span>
-
 </div>
 
 <div class="device">
-
 <span>TB003</span>
-
 <span id="TB003"></span>
-
 </div>
 
 </div>
@@ -158,20 +155,23 @@ let lastDevice="";
 
 function startScan(){
 
-const qr=new Html5Qrcode("reader");
+const html5QrCode = new Html5Qrcode("reader");
 
-qr.start(
-{facingMode:"environment"},
-{fps:10,qrbox:250},
+html5QrCode.start(
+{ facingMode:"environment" },
+{ fps:10, qrbox:250 },
+
 (qrCodeMessage)=>{
 
-lastDevice=qrCodeMessage.trim();
+lastDevice = qrCodeMessage.trim().toUpperCase();
 
-document.getElementById("result").innerHTML="Thiết bị: <b>"+lastDevice+"</b>";
+document.getElementById("result").innerHTML =
+"Thiết bị: <b>"+lastDevice+"</b>";
 
-qr.stop();
+html5QrCode.stop();
 
 }
+
 );
 
 }
@@ -200,13 +200,12 @@ window.open(formLink,"_blank");
 
 async function loadData(){
 
-const res=await fetch(sheetURL);
+const res = await fetch(sheetURL);
 
-const text=await res.text();
+const text = await res.text();
+  const json = JSON.parse(text.substring(47).slice(0,-2));
 
-const json=JSON.parse(text.substring(47).slice(0,-2));
-
-const rows=json.table.rows;
+const rows = json.table.rows;
 
 let devices={
 TB001:"Trống",
@@ -215,15 +214,15 @@ TB003:"Trống"
 };
 
 let total=0;
-  let using=0;
+let using=0;
 let broken=0;
 
 rows.forEach(r=>{
 
-const device=r.c[3]?.v;
-const status=r.c[7]?.v;
+const device = r.c[3]?.v;
+const status = r.c[7]?.v;
 
-if(device && status){
+if(device){
 
 devices[device]=status;
 
@@ -245,11 +244,11 @@ document.getElementById("broken").innerHTML=broken;
 
 }
 
-function updateDevices(dev){
+function updateDevices(d){
 
-setStatus("TB001",dev.TB001);
-setStatus("TB002",dev.TB002);
-setStatus("TB003",dev.TB003);
+setStatus("TB001",d.TB001);
+setStatus("TB002",d.TB002);
+setStatus("TB003",d.TB003);
 
 }
 
@@ -260,11 +259,9 @@ let el=document.getElementById(id);
 if(status==="Đang sử dụng"){
 el.innerHTML="🟡 "+status;
 }
-
 else if(status==="Bị hỏng"){
 el.innerHTML="🔴 "+status;
 }
-
 else{
 el.innerHTML="🟢 Trống";
 }
