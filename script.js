@@ -20,5 +20,31 @@ html5QrCode.stop();
 ).catch(err => {
 console.log("Camera lỗi:", err);
 });
+function checkDevice(deviceId){
 
+const device = devices[deviceId];
+
+if(!device){
+document.getElementById("result").innerHTML = "❌ Không tìm thấy thiết bị";
+return;
+}
+
+let statusText = "";
+
+if(device.status === "free"){
+statusText = "🟢 Thiết bị trống";
+}
+
+if(device.status === "using"){
+statusText = "🟡 Thiết bị đang sử dụng";
+}
+
+if(device.status === "broken"){
+statusText = "🔴 Thiết bị bị hỏng";
+}
+
+document.getElementById("result").innerHTML =
+"Thiết bị: " + device.name + "<br>" + statusText;
+
+}
 }
