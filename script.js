@@ -1,5 +1,24 @@
 const formLink = "https://docs.google.com/forms/d/e/1FAIpQLSfjj3-9zh9VmOFR9z0P0V_Jv3j3rnPBdHEAu3h1KqMutKj4mQ/viewform?usp=sharing&ouid=111579897869090458060";
-function onScanSuccess(qrCodeMessage) {
+function startScan() {
+
+const scanner = new Html5Qrcode("reader");
+
+scanner.start(
+{ facingMode: "environment" },
+{
+fps: 10,
+qrbox: 250
+},
+(qrCodeMessage) => {
+
+checkDevice(qrCodeMessage);
+
+scanner.stop();
+
+}
+);
+
+}
 
 let device = devices.find(d => d.id.trim() === qrCodeMessage.trim());
 
