@@ -5,21 +5,32 @@ let history=[];
 
 function startScan(){
 
-const html5QrCode=new Html5Qrcode("reader");
+const html5QrCode = new Html5Qrcode("reader");
 
 html5QrCode.start(
-{facingMode:"environment"},
-{fps:10,qrbox:200},
+{ facingMode: "environment" },
+{
+fps: 10,
+qrbox: 250
+},
 (qrCodeMessage)=>{
 
-lastDevice=qrCodeMessage.trim();
+lastDevice = qrCodeMessage.trim();
 
 checkDevice(lastDevice);
 
 html5QrCode.stop();
 
+},
+(errorMessage)=>{
+
+// bỏ qua lỗi quét
+
 }
-);
+
+).catch(err=>{
+console.log("Camera lỗi:", err);
+});
 
 }
 
