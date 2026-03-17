@@ -12,7 +12,7 @@ qrbox: 250
 (qrCodeMessage) => {
 
 document.getElementById("result").innerHTML =
-"Thiết bị: " + qrCodeMessage;
+checkDevice(qrCodeMessage);
 
 html5QrCode.stop();
 
@@ -46,5 +46,4 @@ statusText = "🔴 Thiết bị bị hỏng";
 document.getElementById("result").innerHTML =
 "Thiết bị: " + device.name + "<br>" + statusText;
 
-}
 }
