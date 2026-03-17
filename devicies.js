@@ -1,6 +1,7 @@
-const devices = [
-{ id: "TB001", status: "free" },
-{ id: "TB002", status: "busy" },
-{ id: "TB003", status: "broken" }
+const devices = {
 
-];
+TB001:{name:"TB001",status:"free"},
+TB002:{name:"TB002",status:"using"},
+TB003:{name:"TB003",status:"broken"}
+
+};
