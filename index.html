@@ -1,118 +1,97 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-<title>QR Lab Manager</title>
+<meta charset="UTF-8">
+<title>QR Lab Manager PRO</title>
+
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 
 <style>
 
 body{
-font-family:Arial;
+font-family:-apple-system,BlinkMacSystemFont;
+background:#f1f3f6;
 margin:0;
-background:#eef1f7;
 }
 
 header{
-background:linear-gradient(90deg,#4f6df5,#6a8cff);
+background:linear-gradient(135deg,#4e73df,#224abe);
 color:white;
-padding:20px;
 text-align:center;
+padding:25px;
 }
 
 .container{
-padding:15px;
-max-width:600px;
+max-width:500px;
 margin:auto;
+padding:15px;
 }
 
 .card{
 background:white;
-border-radius:12px;
+border-radius:14px;
 padding:15px;
-margin-top:15px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
+margin-bottom:15px;
+box-shadow:0 4px 12px rgba(0,0,0,0.1);
 }
 
 button{
 width:100%;
 padding:14px;
 border:none;
-border-radius:8px;
+border-radius:10px;
+margin-top:10px;
 font-size:16px;
-cursor:pointer;
-}
-
-.scan{
-background:#4f6df5;
+background:#4e73df;
 color:white;
 }
 
-.report{
-background:#e74c3c;
-color:white;
-margin-top:10px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-margin-top:10px;
-}
-
-th{
-background:#4f6df5;
-color:white;
-padding:8px;
-}
-
-td{
-padding:8px;
-text-align:center;
+.device{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
 border-bottom:1px solid #eee;
-}
-
-#reader{
-margin-top:10px;
 }
 
 .stat{
 display:flex;
-justify-content:space-around;
-font-size:18px;
-margin-top:10px;
+justify-content:space-between;
+margin-top:8px;
+}
+
+#reader{
+width:100%;
 }
 
 </style>
+
 </head>
 
 <body>
 
 <header>
-<h2>🔬 QR Lab Manager</h2>
-<p>Quản lý thiết bị phòng Lab</p>
+
+<h2>📷 QR Lab Manager</h2>
+<p>Hệ thống quản lý thiết bị phòng Lab</p>
+
 </header>
 
 <div class="container">
 
 <div class="card">
 
-<button class="scan" onclick="startScan()">
-📷 Quét QR thiết bị
-</button>
+<button onclick="startScan()">📷 Quét QR thiết bị</button>
 
 <div id="reader"></div>
 
-<div id="result">
-Chưa quét thiết bị
-</div>
+<p id="result"></p>
 
-<button class="report" onclick="report()">
-⚠️ Báo hỏng thiết bị
-</button>
+<button onclick="openForm()">📅 Đăng ký sử dụng</button>
+
+<button onclick="report()">⚠️ Báo hỏng</button>
 
 </div>
 
@@ -120,34 +99,29 @@ Chưa quét thiết bị
 
 <h3>📊 Trạng thái thiết bị</h3>
 
-<table>
+<div class="device">
 
-<thead>
-<tr>
-<th>Thiết bị</th>
-<th>Trạng thái</th>
-</tr>
-</thead>
+<span>TB001</span>
 
-<tbody id="deviceTable"></tbody>
-
-</table>
+<span id="TB001"></span>
 
 </div>
 
-<div class="card">
+<div class="device">
 
-<h3>📅 Đặt lịch thiết bị</h3>
+<span>TB002</span>
 
-<select id="deviceSelect">
-<option>TB001</option>
-<option>TB002</option>
-<option>TB003</option>
-</select>
+<span id="TB002"></span>
 
-<input type="datetime-local" id="time">
+</div>
 
-<button onclick="bookDevice()">Đặt lịch</button>
+<div class="device">
+
+<span>TB003</span>
+
+<span id="TB003"></span>
+
+</div>
 
 </div>
 
@@ -156,42 +130,19 @@ Chưa quét thiết bị
 <h3>📈 Thống kê sử dụng</h3>
 
 <div class="stat">
-
-<div>
-<b id="totalScan">0</b><br>
-Lượt quét
+<span>Tổng lượt sử dụng</span>
+<span id="total"></span>
 </div>
 
-<div>
-<b id="totalUse">0</b><br>
-Đang dùng
+<div class="stat">
+<span>Thiết bị đang dùng</span>
+<span id="using"></span>
 </div>
 
-<div>
-<b id="totalFree">0</b><br>
-Thiết bị trống
+<div class="stat">
+<span>Thiết bị hỏng</span>
+<span id="broken"></span>
 </div>
-
-</div>
-
-</div>
-
-<div class="card">
-
-<h3>🧾 Lịch sử quét</h3>
-
-<table>
-
-<thead>
-<tr>
-<th>Thiết bị</th>
-<th>Thời gian</th>
-</tr>
-</thead>
-
-<tbody id="historyTable"></tbody>
-
-</table>
 
 </div>
 
@@ -201,167 +152,128 @@ Thiết bị trống
 
 const formLink="https://forms.gle/swQgBUYASe1Hinaw7";
 
-const sheetURL=
-"https://opensheet.elk.sh/1ruY2FegopOUprLRQ3WV0UfLKFwLPvU-wOysibaBoWvI/Sheet1";
+const sheetURL="https://docs.google.com/spreadsheets/d/1ruY2FegopOUprLRQ3WV0UfLKFwLPvU-wOysibaBoWvI/gviz/tq?tqx=out:json";
 
-let devices={};
-let history=[];
 let lastDevice="";
-let totalScan=0;
-
-loadSheet();
-
-async function loadSheet(){
-
-const res=await fetch(sheetURL);
-const data=await res.json();
-
-devices={};
-
-data.forEach(row=>{
-
-devices[row.id]={
-name:row.name,
-status:row.status
-};
-
-});
-
-renderDevices();
-
-}
-
-function renderDevices(){
-
-let table="";
-let free=0;
-let using=0;
-
-for(let id in devices){
-
-let s=devices[id].status;
-  let status="";
-
-if(s==="free"){status="🟢 Trống";free++}
-if(s==="using"){status="🟡 Đang sử dụng";using++}
-if(s==="broken")status="🔴 Hỏng";
-
-table+=`
-<tr>
-<td>${id}</td>
-<td>${status}</td>
-</tr>
-`;
-
-}
-
-document.getElementById("deviceTable").innerHTML=table;
-
-document.getElementById("totalUse").innerText=using;
-document.getElementById("totalFree").innerText=free;
-
-}
 
 function startScan(){
 
-const html5QrCode=new Html5Qrcode("reader");
+const qr=new Html5Qrcode("reader");
 
-html5QrCode.start(
+qr.start(
 {facingMode:"environment"},
 {fps:10,qrbox:250},
-
 (qrCodeMessage)=>{
 
 lastDevice=qrCodeMessage.trim();
 
-checkDevice(lastDevice);
+document.getElementById("result").innerHTML="Thiết bị: <b>"+lastDevice+"</b>";
 
-html5QrCode.stop();
+qr.stop();
 
 }
 );
 
 }
 
-function checkDevice(id){
+function openForm(){
 
-const device=devices[id];
-
-if(!device){
-
-document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
+if(lastDevice===""){
+alert("Hãy quét thiết bị trước");
 return;
-
 }
 
-let status="";
-
-if(device.status==="free")status="🟢 Trống";
-if(device.status==="using")status="🟡 Đang sử dụng";
-if(device.status==="broken")status="🔴 Hỏng";
-
-document.getElementById("result").innerHTML=
-"<b>"+device.name+"</b><br>"+status;
-
-devices[id].status="using";
-
-totalScan++;
-
-document.getElementById("totalScan").innerText=totalScan;
-
-history.unshift({
-
-device:id,
-time:new Date().toLocaleString()
-
-});
-
-updateHistory();
-renderDevices();
-
-}
-
-function updateHistory(){
-
-let table="";
-
-history.forEach(h=>{
-
-table+=`
-<tr>
-<td>${h.device}</td>
-<td>${h.time}</td>
-</tr>
-`;
-
-});
-
-document.getElementById("historyTable").innerHTML=table;
+window.open(formLink,"_blank");
 
 }
 
 function report(){
 
 if(lastDevice===""){
-
 alert("Quét thiết bị trước");
-
 return;
+}
+
+window.open(formLink,"_blank");
 
 }
 
-window.open(formLink);
+async function loadData(){
+
+const res=await fetch(sheetURL);
+
+const text=await res.text();
+
+const json=JSON.parse(text.substring(47).slice(0,-2));
+
+const rows=json.table.rows;
+
+let devices={
+TB001:"Trống",
+TB002:"Trống",
+TB003:"Trống"
+};
+
+let total=0;
+  let using=0;
+let broken=0;
+
+rows.forEach(r=>{
+
+const device=r.c[3]?.v;
+const status=r.c[7]?.v;
+
+if(device && status){
+
+devices[device]=status;
+
+total++;
+
+if(status==="Đang sử dụng") using++;
+
+if(status==="Bị hỏng") broken++;
 
 }
 
-function bookDevice(){
+});
 
-let device=document.getElementById("deviceSelect").value;
-let time=document.getElementById("time").value;
+updateDevices(devices);
 
-alert("Đã đặt "+device+" lúc "+time);
+document.getElementById("total").innerHTML=total;
+document.getElementById("using").innerHTML=using;
+document.getElementById("broken").innerHTML=broken;
 
 }
+
+function updateDevices(dev){
+
+setStatus("TB001",dev.TB001);
+setStatus("TB002",dev.TB002);
+setStatus("TB003",dev.TB003);
+
+}
+
+function setStatus(id,status){
+
+let el=document.getElementById(id);
+
+if(status==="Đang sử dụng"){
+el.innerHTML="🟡 "+status;
+}
+
+else if(status==="Bị hỏng"){
+el.innerHTML="🔴 "+status;
+}
+
+else{
+el.innerHTML="🟢 Trống";
+}
+
+}
+
+loadData();
+
+setInterval(loadData,5000);
 
 </script>
 
