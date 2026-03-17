@@ -1,13 +1,90 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
 <meta charset="UTF-8">
 <title>QR Lab Manager</title>
-<link rel="stylesheet" href="style.css">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-</head>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#4facfe,#00f2fe);
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.container{
+text-align:center;
+color:white;
+}
+
+h1{
+margin-bottom:5px;
+}
+
+.subtitle{
+opacity:0.9;
+margin-bottom:30px;
+}
+
+.card{
+background:white;
+color:#333;
+padding:30px;
+border-radius:15px;
+width:320px;
+box-shadow:0 10px 25px rgba(0,0,0,0.2);
+}
+
+button{
+border:none;
+padding:12px 20px;
+border-radius:8px;
+font-size:15px;
+cursor:pointer;
+margin-top:10px;
+width:100%;
+}
+
+.scan-btn{
+background:#3498db;
+color:white;
+}
+
+.scan-btn:hover{
+background:#2980b9;
+}
+
+.report-btn{
+background:#ff5e5e;
+color:white;
+}
+
+.report-btn:hover{
+background:#e74c3c;
+}
+
+.result{
+margin-top:20px;
+font-size:16px;
+font-weight:bold;
+}
+
+footer{
+margin-top:20px;
+font-size:12px;
+opacity:0.8;
+}
+
+</style>
+</head>
+
 <body>
 
 <div class="container">
@@ -18,7 +95,9 @@
 <div class="card">
 
 <button class="scan-btn" onclick="startScan()">📷 Quét QR thiết bị</button>
-<div id="reader" style="width:300px;margin:auto;margin-top:20px;"></div>
+
+<div id="reader" style="width:250px;margin:auto;margin-top:15px;"></div>
+
 <div id="result" class="result"></div>
 
 <button class="report-btn" onclick="report()">⚠️ Báo hỏng thiết bị</button>
