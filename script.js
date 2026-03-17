@@ -1,3 +1,4 @@
+const formLink = "https://docs.google.com/forms/d/e/1FAIpQLSfjj3-9zh9VmOFR9z0P0V_Jv3j3rnPBdHEAu3h1KqMutKj4mQ/viewform?usp=sharing&ouid=111579897869090458060";
 function onScanSuccess(qrCodeMessage) {
 
 let device = devices.find(d => d.id === qrCodeMessage);
@@ -18,11 +19,11 @@ document.getElementById("result").innerHTML =
 "🔧 Máy đang hỏng";
 }
 
-else{
-document.getElementById("result").innerHTML =
-"✅ Máy sẵn sàng sử dụng";
-}
+else if(device.status=="free"){
+   document.getElementById("result").innerHTML =
+   "✅ Máy đang trống - chuyển sang đặt lịch";
 
+   window.open(formLink);
 }
 
 let scanner = new Html5QrcodeScanner(
@@ -33,13 +34,9 @@ let scanner = new Html5QrcodeScanner(
 scanner.render(onScanSuccess);
 
 function reportBroken(){
-
-window.open("LINK_GOOGLE_FORM_BAO_HONG");
-
+window.open(formLink);
 }
 
 function bookMachine(){
-
-window.open("LINK_GOOGLE_FORM_DAT_LICH");
-
+window.open(formLink);
 }
