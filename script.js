@@ -1,6 +1,7 @@
 const formLink="https://forms.gle/swQgBUYASe1Hinaw7";
 
 let lastDevice="";
+let history=[];
 
 function startScan(){
 
@@ -33,27 +34,43 @@ return;
 
 let status="";
 
-if(device.status==="free"){
-status="🟢 Thiết bị trống";
-}
-
-if(device.status==="using"){
-status="🟡 Thiết bị đang sử dụng";
-}
-
-if(device.status==="broken"){
-status="🔴 Thiết bị bị hỏng";
-}
+if(device.status==="free"){status="🟢 Trống";}
+if(device.status==="using"){status="🟡 Đang sử dụng";}
+if(device.status==="broken"){status="🔴 Bị hỏng";}
 
 document.getElementById("result").innerHTML=
-"Thiết bị: "+device.name+"<br>"+status;
+"<b>Thiết bị:</b> "+device.name+"<br>"+status;
+
+history.unshift({
+device:device.name,
+time:new Date().toLocaleString()
+});
+
+updateHistory();
+
+}
+
+function updateHistory(){
+
+let table="";
+
+history.forEach(h=>{
+table+=`
+<tr>
+<td>${h.device}</td>
+<td>${h.time}</td>
+</tr>
+`;
+});
+
+document.getElementById("historyTable").innerHTML=table;
 
 }
 
 function report(){
 
 if(lastDevice===""){
-alert("Hãy quét thiết bị trước");
+alert("Quét thiết bị trước");
 return;
 }
 
