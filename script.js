@@ -9,36 +9,51 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let current="";
+let current = "";
+let scanner = null;
 
-// SCAN
+// ===== SCAN (ĐÃ FIX LỖI) =====
 function scan(){
-const qr=new Html5Qrcode("reader");
 
-qr.start({facingMode:"environment"},{fps:10,qrbox:250},
+document.getElementById("reader").innerHTML = "";
 
-(text)=>{
-if(text.includes("http")) text=text.split("/").pop();
+scanner = new Html5Qrcode("reader");
 
-current=text.toUpperCase();
+scanner.start(
+{ facingMode: "environment" },
+{
+fps: 10,
+qrbox: 250
+},
+(text) => {
+
+if(text.includes("http")){
+text = text.split("/").pop();
+}
+
+current = text.trim().toUpperCase();
 
 navigator.vibrate(200);
 
 check(current);
 
-qr.stop();
-});
+// dừng camera
+scanner.stop();
+
+},
+(error) => {}
+);
 }
 
-// CHECK
+// ===== CHECK =====
 function check(id){
 
 db.ref("devices/"+id).on("value",(snap)=>{
 
-let d=snap.val();
+let d = snap.val();
 
 if(!d){
-result.innerHTML="❌ Không tìm thấy thiết bị";
+result.innerHTML = "❌ Không tìm thấy thiết bị";
 return;
 }
 
@@ -46,17 +61,18 @@ let color="free";
 if(d.status==="Đang sử dụng") color="using";
 if(d.status==="Bị hỏng") color="broken";
 
-result.innerHTML=`
+result.innerHTML = `
 <div class="result">
 <h3>${d.name}</h3>
 <p>Mã: ${id}</p>
 <span class="badge ${color}">${d.status}</span>
 </div>
 `;
+
 });
 }
 
-// BOOK
+// ===== BOOK =====
 function book(){
 if(!current) return alert("Quét trước");
 
@@ -66,7 +82,7 @@ time:Date.now()
 });
 }
 
-// REPORT
+// ===== REPORT =====
 function report(){
 if(!current) return alert("Quét trước");
 
@@ -75,7 +91,7 @@ status:"Bị hỏng"
 });
 }
 
-// AUTO RESET
+// ===== AUTO RESET =====
 setInterval(()=>{
 db.ref("devices").once("value",(snap)=>{
 let data=snap.val();
@@ -92,7 +108,7 @@ db.ref("devices/"+id).update({status:"Trống"});
 });
 },10000);
 
-// LOAD + CHART
+// ===== LOAD LIST + CHART =====
 let chart;
 
 db.ref("devices").on("value",(snap)=>{
@@ -130,4 +146,5 @@ labels:["Đang dùng","Trống","Hỏng"],
 datasets:[{data:[using,free,broken]}]
 }
 });
+
 });
