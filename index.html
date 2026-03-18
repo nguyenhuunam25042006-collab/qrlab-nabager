@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>QR Lab Manager</title>
+<title>QR Lab VIP</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -12,104 +12,70 @@
 <style>
 body{
 margin:0;
-font-family:-apple-system, BlinkMacSystemFont;
-background:#eef2ff;
+font-family:-apple-system;
+background:linear-gradient(135deg,#eef2ff,#dfe6ff);
 }
 
 /* HEADER */
 .header{
-padding:20px;
+padding:25px;
 text-align:center;
-background:linear-gradient(135deg,#4a6cf7,#7b9cff);
 color:white;
-border-bottom-left-radius:30px;
-border-bottom-right-radius:30px;
-box-shadow:0 10px 25px rgba(0,0,0,0.1);
-}
-
-.header h2{
-margin:0;
-font-size:22px;
-}
-
-/* CONTAINER */
-.container{
-max-width:420px;
-margin:auto;
-padding:15px;
+background:linear-gradient(135deg,#4a6cf7,#7b9cff);
+border-radius:0 0 30px 30px;
 }
 
 /* CARD */
 .card{
-background:rgba(255,255,255,0.9);
-backdrop-filter:blur(10px);
+background:rgba(255,255,255,0.8);
+backdrop-filter:blur(15px);
+padding:20px;
+margin:15px;
 border-radius:20px;
-padding:18px;
-margin-top:15px;
-box-shadow:0 10px 25px rgba(0,0,0,0.08);
+box-shadow:0 15px 30px rgba(0,0,0,0.1);
 }
 
 /* BUTTON */
 .btn{
 width:100%;
-padding:14px;
+padding:15px;
 margin-top:10px;
 border:none;
-border-radius:14px;
+border-radius:15px;
 font-size:16px;
-font-weight:600;
+font-weight:bold;
 cursor:pointer;
 transition:0.2s;
 }
 
-.btn:active{
-transform:scale(0.97);
-}
+.btn:active{transform:scale(0.95);}
 
-.primary{
-background:linear-gradient(135deg,#4a6cf7,#6a8dff);
-color:white;
-}
+.primary{background:#4a6cf7;color:white;}
+.success{background:#2ecc71;color:white;}
+.danger{background:#ff4d4d;color:white;}
 
-.success{
-background:linear-gradient(135deg,#2ecc71,#4be28a);
-color:white;
-}
-
-.danger{
-background:linear-gradient(135deg,#ff5e5e,#ff2e2e);
-color:white;
-}
-
-/* RESULT CARD */
-.result-card{
+/* RESULT */
+.result{
+margin-top:10px;
 padding:15px;
 border-radius:15px;
-background:linear-gradient(135deg,#ffffff,#f7f9ff);
-box-shadow:0 8px 20px rgba(0,0,0,0.08);
-margin-top:10px;
+background:white;
+box-shadow:0 5px 15px rgba(0,0,0,0.1);
 }
 
-/* DEVICE LIST */
-.device{
-display:flex;
-justify-content:space-between;
-padding:12px 0;
-border-bottom:1px solid #eee;
-}
-
-.status{
-padding:5px 10px;
+/* STATUS */
+.badge{
+padding:6px 12px;
 border-radius:10px;
-font-size:12px;
 color:white;
+font-size:12px;
 }
 
 .free{background:#2ecc71;}
 .using{background:#f1c40f;}
 .broken{background:#e74c3c;}
 
-/* NAVBAR */
+/* NAV */
 .nav{
 position:fixed;
 bottom:0;
@@ -119,14 +85,7 @@ background:white;
 display:flex;
 justify-content:space-around;
 padding:12px;
-border-top-left-radius:20px;
-border-top-right-radius:20px;
 box-shadow:0 -5px 20px rgba(0,0,0,0.1);
-}
-
-.nav div{
-font-size:18px;
-cursor:pointer;
 }
 </style>
 
@@ -134,46 +93,35 @@ cursor:pointer;
 
 <body>
 
-<!-- HEADER -->
 <div class="header">
-<h2>🔬 QR Lab Manager</h2>
-<p style="margin:5px 0 0;opacity:0.9;">Quản lý thiết bị thông minh</p>
+<h2>🔬 QR Lab VIP</h2>
+<p>Hệ thống quản lý thông minh</p>
 </div>
 
-<div class="container">
-
-<!-- SCAN -->
 <div class="card">
-<button class="btn primary" onclick="scan()">📷 Quét QR thiết bị</button>
-
+<button class="btn primary" onclick="scan()">📷 Quét QR</button>
 <div id="reader"></div>
-
 <div id="result"></div>
 
-<button class="btn success" onclick="book()">📅 Đặt lịch</button>
-<button class="btn danger" onclick="report()">⚠️ Báo hỏng</button>
+<button class="btn success" onclick="book()">📅 Sử dụng</button>
+<button class="btn danger" onclick="report()">⚠️ Báo lỗi</button>
 </div>
 
-<!-- LIST -->
 <div class="card">
-<h3>📊 Trạng thái thiết bị</h3>
-<div id="deviceList"></div>
+<h3>📊 Thiết bị</h3>
+<div id="list"></div>
 </div>
 
-<!-- CHART -->
 <div class="card">
 <h3>📈 Thống kê</h3>
 <canvas id="chart"></canvas>
 </div>
 
-</div>
-
-<!-- NAV -->
 <div class="nav">
 <div onclick="location.reload()">🏠</div>
 <div onclick="scan()">📷</div>
-<div onclick="window.scrollTo(0,document.body.scrollHeight)">📊</div>
-  </div>
+<div>📊</div>
+</div>
 
 <script src="script.js"></script>
 
