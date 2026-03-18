@@ -1,122 +1,135 @@
-const formLink="https://forms.gle/swQgBUYASe1Hinaw7";
+// ===== FIREBASE CONFIG =====
+const firebaseConfig = {
+  apiKey: "YOUR_KEY",
+  authDomain: "YOUR_DOMAIN",
+  databaseURL: "YOUR_DB",
+  projectId: "YOUR_ID",
+};
 
-let lastDevice="";
-let history=[];
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
-loadDevices();
-
-function startScan(){
-
-const html5QrCode=new Html5Qrcode("reader");
-
-html5QrCode.start(
-{facingMode:"environment"},
-{fps:10,qrbox:250},
-(qrCodeMessage)=>{
-
-lastDevice=qrCodeMessage.trim();
-
-checkDevice(lastDevice);
-
-html5QrCode.stop();
-
+// ===== LOGIN =====
+function login(){
+if(user.value==="admin" && pass.value==="123"){
+alert("Login thành công");
+}else{
+alert("Sai tài khoản");
 }
-);
-
 }
 
-function checkDevice(deviceId){
+// ===== SCAN =====
+let current="";
 
-deviceId=deviceId.toUpperCase();
+function scan(){
+const qr=new Html5Qrcode("reader");
 
-const device=devices[deviceId];
+qr.start({facingMode:"environment"},{fps:10,qrbox:250},
 
-if(!device){
+(text)=>{
+if(text.includes("http")) text=text.split("/").pop();
 
-document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
+current=text.toUpperCase();
 
+navigator.vibrate(200); // rung máy
+
+check(current);
+qr.stop();
+});
+}
+
+// ===== CHECK =====
+function check(id){
+
+db.ref("devices/"+id).on("value",snap=>{
+
+let d=snap.val();
+
+if(!d){
+result.innerHTML="❌ Không có thiết bị";
 return;
-
 }
 
-let status="";
-
-if(device.status==="free") status="🟢 Trống";
-
-if(device.status==="using") status="🟡 Đang sử dụng";
-
-if(device.status==="broken") status="🔴 Bị hỏng";
-
-document.getElementById("result").innerHTML=
-"<b>Thiết bị:</b> "+device.name+"<br>"+status;
-
-history.unshift({
-
-device:device.name,
-time:new Date().toLocaleString()
-
-});
-
-updateHistory();
-
-}
-
-function updateHistory(){
-
-let table="";
-
-history.forEach(h=>{
-
-table+=`
-<tr>
-<td>${h.device}</td>
-<td>${h.time}</td>
-</tr>
+result.innerHTML=`
+<b>${d.name}</b><br>
+${d.status}
 `;
 
 });
+}
 
-document.getElementById("historyTable").innerHTML=table;
+// ===== BOOK =====
+function book(){
+
+db.ref("devices/"+current).update({
+status:"Đang sử dụng",
+time:Date.now()
+});
 
 }
 
-function loadDevices(){
+// ===== AUTO RESET SAU 2 PHÚT =====
+setInterval(()=>{
 
-let table="";
+db.ref("devices").once("value",snap=>{
+let data=snap.val();
 
-for(let id in devices){
+Object.keys(data).forEach(id=>{
+if(data[id].status==="Đang sử dụng"){
 
-let status="";
+let t=data[id].time||0;
 
-if(devices[id].status==="free") status="🟢 Trống";
-
-if(devices[id].status==="using") status="🟡 Đang sử dụng";
-
-if(devices[id].status==="broken") status="🔴 Bị hỏng";
-
-table+=`
-<tr>
-<td>${id}</td>
-<td>${status}</td>
-</tr>
-`;
-
+if(Date.now()-t>120000){
+db.ref("devices/"+id).update({status:"Trống"});
 }
 
-document.getElementById("deviceTable").innerHTML=table;
-
 }
+});
+});
 
+},10000);
+
+// ===== REPORT =====
 function report(){
-
-if(lastDevice===""){
-
-alert("Quét thiết bị trước");
-
-return;
-
+db.ref("devices/"+current).update({status:"Bị hỏng"});
 }
 
-window.open(formLink,"_blank");
+// ===== LOAD + CHART =====
+let chart;
 
+db.ref("devices").on("value",snap=>{
+
+let data=snap.val();
+let html="";
+let using=0,free=0,broken=0;
+
+Object.keys(data).forEach(id=>{
+
+let s=data[id].status;
+
+if(s==="Đang sử dụng") using++;
+else if(s==="Bị hỏng") broken++;
+else free++;
+
+html+=`
+<div class="device">
+<span>${data[id].name}</span>
+<span>${s}</span>
+</div>
+`;
+
+});
+
+deviceList.innerHTML=html;
+
+if(chart) chart.destroy();
+
+chart=new Chart(chart,{
+type:"doughnut",
+data:{
+labels:["Đang dùng","Trống","Hỏng"],
+datasets:[{data:[using,free,broken]}]
 }
+});
+
+});
