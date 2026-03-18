@@ -9,15 +9,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ===== LOGIN =====
-function login(){
-if(user.value==="admin" && pass.value==="123"){
-alert("Login thành công");
-}else{
-alert("Sai tài khoản");
-}
-}
-
 // ===== SCAN =====
 let current="";
 
@@ -31,7 +22,7 @@ if(text.includes("http")) text=text.split("/").pop();
 
 current=text.toUpperCase();
 
-navigator.vibrate(200); // rung máy
+navigator.vibrate(200);
 
 check(current);
 qr.stop();
@@ -51,8 +42,10 @@ return;
 }
 
 result.innerHTML=`
+<div style="padding:15px;border-radius:12px;background:#fff;">
 <b>${d.name}</b><br>
 ${d.status}
+</div>
 `;
 
 });
@@ -60,39 +53,42 @@ ${d.status}
 
 // ===== BOOK =====
 function book(){
-
 db.ref("devices/"+current).update({
 status:"Đang sử dụng",
 time:Date.now()
 });
-
 }
 
-// ===== AUTO RESET SAU 2 PHÚT =====
+// ===== REPORT =====
+function report(){
+db.ref("devices/"+current).update({
+status:"Bị hỏng"
+});
+}
+
+// ===== AUTO RESET =====
 setInterval(()=>{
 
 db.ref("devices").once("value",snap=>{
 let data=snap.val();
 
 Object.keys(data).forEach(id=>{
-if(data[id].status==="Đang sử dụng"){
 
-let t=data[id].time||0;
+let d=data[id];
 
-if(Date.now()-t>120000){
+if(d.status==="Đang sử dụng"){
+
+if(Date.now()-d.time > 120000){
 db.ref("devices/"+id).update({status:"Trống"});
 }
 
 }
+
 });
+
 });
 
 },10000);
-
-// ===== REPORT =====
-function report(){
-db.ref("devices/"+current).update({status:"Bị hỏng"});
-}
 
 // ===== LOAD + CHART =====
 let chart;
@@ -124,7 +120,7 @@ deviceList.innerHTML=html;
 
 if(chart) chart.destroy();
 
-chart=new Chart(chart,{
+chart=new Chart(document.getElementById("chart"),{
 type:"doughnut",
 data:{
 labels:["Đang dùng","Trống","Hỏng"],
