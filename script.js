@@ -1,8 +1,9 @@
+// ===== FIREBASE =====
 const firebaseConfig = {
-  apiKey: "YOUR_KEY",
-  authDomain: "YOUR_DOMAIN",
-  databaseURL: "YOUR_DB",
-  projectId: "YOUR_ID"
+  apiKey: "DÁN_KEY",
+  authDomain: "DÁN_DOMAIN",
+  databaseURL: "DÁN_DB_URL",
+  projectId: "DÁN_ID"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -37,7 +38,7 @@ db.ref("devices/"+id).on("value",(snap)=>{
 let d=snap.val();
 
 if(!d){
-result.innerHTML="❌ Không có thiết bị";
+result.innerHTML="❌ Không tìm thấy thiết bị";
 return;
 }
 
@@ -48,7 +49,7 @@ if(d.status==="Bị hỏng") color="broken";
 result.innerHTML=`
 <div class="result">
 <h3>${d.name}</h3>
-<p>${id}</p>
+<p>Mã: ${id}</p>
 <span class="badge ${color}">${d.status}</span>
 </div>
 `;
@@ -83,7 +84,7 @@ Object.keys(data).forEach(id=>{
 let d=data[id];
 
 if(d.status==="Đang sử dụng"){
-if(Date.now()-d.time>120000){
+if(Date.now()-d.time > 120000){
 db.ref("devices/"+id).update({status:"Trống"});
 }
 }
@@ -91,30 +92,34 @@ db.ref("devices/"+id).update({status:"Trống"});
 });
 },10000);
 
-// LOAD
+// LOAD + CHART
 let chart;
 
 db.ref("devices").on("value",(snap)=>{
 let data=snap.val();
 let html="";
-let u=0,f=0,b=0;
+let using=0,free=0,broken=0;
 
 Object.keys(data).forEach(id=>{
 let s=data[id].status;
 
-if(s==="Đang sử dụng") u++;
-else if(s==="Bị hỏng") b++;
-else f++;
+if(s==="Đang sử dụng") using++;
+else if(s==="Bị hỏng") broken++;
+else free++;
+
+let color="free";
+if(s==="Đang sử dụng") color="using";
+if(s==="Bị hỏng") color="broken";
 
 html+=`
-<div style="display:flex;justify-content:space-between;padding:8px 0;">
+<div class="device">
 <span>${data[id].name}</span>
-<span>${s}</span>
+<span class="badge ${color}">${s}</span>
 </div>
 `;
 });
 
-list.innerHTML=html;
+deviceList.innerHTML=html;
 
 if(chart) chart.destroy();
 
@@ -122,7 +127,7 @@ chart=new Chart(document.getElementById("chart"),{
 type:"doughnut",
 data:{
 labels:["Đang dùng","Trống","Hỏng"],
-datasets:[{data:[u,f,b]}]
+datasets:[{data:[using,free,broken]}]
 }
 });
 });
