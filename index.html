@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>QR Lab VIP</title>
+<title>QR Lab Manager</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -13,59 +13,62 @@
 body{
 margin:0;
 font-family:-apple-system;
-background:linear-gradient(135deg,#eef2ff,#dfe6ff);
+background:#eef2ff;
 }
 
-/* HEADER */
 .header{
-padding:25px;
+padding:20px;
 text-align:center;
-color:white;
 background:linear-gradient(135deg,#4a6cf7,#7b9cff);
+color:white;
 border-radius:0 0 30px 30px;
 }
 
-/* CARD */
-.card{
-background:rgba(255,255,255,0.8);
-backdrop-filter:blur(15px);
-padding:20px;
-margin:15px;
-border-radius:20px;
-box-shadow:0 15px 30px rgba(0,0,0,0.1);
+.container{
+max-width:420px;
+margin:auto;
+padding:15px;
 }
 
-/* BUTTON */
+.card{
+background:white;
+padding:18px;
+border-radius:20px;
+margin-top:15px;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+}
+
 .btn{
 width:100%;
-padding:15px;
+padding:14px;
 margin-top:10px;
 border:none;
-border-radius:15px;
+border-radius:14px;
 font-size:16px;
 font-weight:bold;
 cursor:pointer;
-transition:0.2s;
 }
-
-.btn:active{transform:scale(0.95);}
 
 .primary{background:#4a6cf7;color:white;}
 .success{background:#2ecc71;color:white;}
-.danger{background:#ff4d4d;color:white;}
+.danger{background:#e74c3c;color:white;}
 
-/* RESULT */
 .result{
 margin-top:10px;
 padding:15px;
 border-radius:15px;
-background:white;
-box-shadow:0 5px 15px rgba(0,0,0,0.1);
+background:#f7f9ff;
 }
 
-/* STATUS */
+.device{
+display:flex;
+justify-content:space-between;
+padding:10px 0;
+border-bottom:1px solid #eee;
+}
+
 .badge{
-padding:6px 12px;
+padding:4px 10px;
 border-radius:10px;
 color:white;
 font-size:12px;
@@ -75,7 +78,6 @@ font-size:12px;
 .using{background:#f1c40f;}
 .broken{background:#e74c3c;}
 
-/* NAV */
 .nav{
 position:fixed;
 bottom:0;
@@ -94,12 +96,15 @@ box-shadow:0 -5px 20px rgba(0,0,0,0.1);
 <body>
 
 <div class="header">
-<h2>🔬 QR Lab VIP</h2>
-<p>Hệ thống quản lý thông minh</p>
+<h2>🔬 QR Lab Manager</h2>
+<p>Quản lý thiết bị phòng lab</p>
 </div>
+
+<div class="container">
 
 <div class="card">
 <button class="btn primary" onclick="scan()">📷 Quét QR</button>
+
 <div id="reader"></div>
 <div id="result"></div>
 
@@ -108,8 +113,8 @@ box-shadow:0 -5px 20px rgba(0,0,0,0.1);
 </div>
 
 <div class="card">
-<h3>📊 Thiết bị</h3>
-<div id="list"></div>
+<h3>📊 Trạng thái thiết bị</h3>
+<div id="deviceList"></div>
 </div>
 
 <div class="card">
@@ -117,10 +122,12 @@ box-shadow:0 -5px 20px rgba(0,0,0,0.1);
 <canvas id="chart"></canvas>
 </div>
 
+</div>
+
 <div class="nav">
 <div onclick="location.reload()">🏠</div>
 <div onclick="scan()">📷</div>
-<div>📊</div>
+<div onclick="window.scrollTo(0,document.body.scrollHeight)">📊</div>
 </div>
 
 <script src="script.js"></script>
