@@ -15,36 +15,59 @@ let scanner = null;
 // ===== SCAN (ĐÃ FIX LỖI) =====
 function scan(){
 
-document.getElementById("reader").innerHTML = "";
+const reader = document.getElementById("reader");
+reader.innerHTML = "";
 
-scanner = new Html5Qrcode("reader");
+// tạo scanner mới
+const html5QrCode = new Html5Qrcode("reader");
 
-scanner.start(
-{ facingMode: "environment" },
+// hiển thị camera selector (fix iPhone + Android)
+Html5Qrcode.getCameras().then(devices => {
+
+if (devices && devices.length) {
+
+// ưu tiên camera sau
+const backCam = devices.find(d => d.label.toLowerCase().includes("back")) || devices[0];
+
+html5QrCode.start(
+backCam.id,
 {
 fps: 10,
-qrbox: 250
+qrbox: { width: 250, height: 250 }
 },
-(text) => {
+(qrCodeMessage) => {
 
+let text = qrCodeMessage.trim();
+
+// nếu là link thì lấy TB001
 if(text.includes("http")){
 text = text.split("/").pop();
 }
 
-current = text.trim().toUpperCase();
+current = text.toUpperCase();
 
-navigator.vibrate(200);
+navigator.vibrate && navigator.vibrate(200);
 
 check(current);
 
-// dừng camera
-scanner.stop();
+// dừng sau khi quét
+html5QrCode.stop();
 
 },
-(error) => {}
+(errorMessage) => {
+// bỏ qua lỗi scan
+}
 );
+
+} else {
+alert("Không tìm thấy camera");
 }
 
+}).catch(err => {
+alert("Không mở được camera: " + err);
+});
+
+}
 // ===== CHECK =====
 function check(id){
 
