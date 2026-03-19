@@ -160,6 +160,20 @@ let d = devices[currentDevice];
 
 if(d.start){
 let used = Date.now() - d.start;
+
+// 🔥 LƯU LỊCH SỬ
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+history.push({
+device: d.name,
+user: d.user,
+time: new Date().toLocaleString(),
+duration: formatTime(used)
+});
+
+localStorage.setItem("history", JSON.stringify(history));
+
+// ===== CODE CŨ =====
 d.total += used;
 d.start = null;
 
@@ -173,7 +187,6 @@ save();
 showDevice(currentDevice);
 updateChart();
 }
-
 // ===== ERROR =====
 function errorDevice(){
 if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
