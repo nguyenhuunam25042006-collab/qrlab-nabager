@@ -1,7 +1,7 @@
-let scanner;
+let scanner = null;
 let currentDevice = "";
 
-// ===== LOAD DATA (LƯU LOCAL) =====
+// ===== DATA =====
 let devices = JSON.parse(localStorage.getItem("devices")) || {
 "TB001": {name:"Tủ sấy", status:"Trống"},
 "TB002": {name:"Hằn lún bánh xe", status:"Trống"},
@@ -15,29 +15,43 @@ let devices = JSON.parse(localStorage.getItem("devices")) || {
 "TB010": {name:"Bảo dưỡng bê tông", status:"Trống"}
 };
 
-// ===== LƯU =====
+// ===== SAVE =====
 function save(){
 localStorage.setItem("devices", JSON.stringify(devices));
 }
 
-// ===== QUÉT QR =====
+// ===== SCAN (FIX ĐƠ) =====
 function startScan(){
 
-document.getElementById("reader").innerHTML="";
+const reader = document.getElementById("reader");
+reader.innerHTML = "";
 
+// stop scanner cũ
 if(scanner){
-scanner.stop().catch(()=>{});
+scanner.stop().then(()=>{
+scanner.clear();
+}).catch(()=>{});
 }
 
 scanner = new Html5Qrcode("reader");
 
 Html5Qrcode.getCameras().then(cameras=>{
 
-let cam = cameras[cameras.length-1].id;
+if(!cameras.length){
+alert("Không có camera");
+return;
+}
 
-scanner.start(cam,{fps:10,qrbox:250},
+let cam = cameras[cameras.length - 1].id;
+
+scanner.start(
+cam,
+{fps:10, qrbox:250},
 
 (text)=>{
+
+// 👉 DỪNG TRƯỚC
+scanner.stop().then(()=>{
 
 let id = text.trim();
 
@@ -49,20 +63,28 @@ currentDevice = id.toUpperCase();
 
 navigator.vibrate && navigator.vibrate(200);
 
+// delay tránh đơ
+setTimeout(()=>{
 showDevice(currentDevice);
 updateChart();
+},200);
 
-scanner.stop();
+}).catch(()=>{});
 
 },
 (err)=>{}
 );
 
+}).catch(()=>{
+alert("Không mở được camera");
 });
+
 }
 
-// ===== HIỂN THỊ =====
+// ===== SHOW =====
 function showDevice(id){
+
+document.getElementById("reader").innerHTML = "";
 
 let d = devices[id];
 
@@ -84,7 +106,7 @@ result.innerHTML=`
 `;
 }
 
-// ===== SỬ DỤNG =====
+// ===== USE =====
 function useDevice(){
 if(!currentDevice) return alert("Quét trước");
 
@@ -94,7 +116,7 @@ showDevice(currentDevice);
 updateChart();
 }
 
-// ===== BÁO LỖI =====
+// ===== ERROR =====
 function errorDevice(){
 if(!currentDevice) return alert("Quét trước");
 
@@ -104,7 +126,7 @@ showDevice(currentDevice);
 updateChart();
 }
 
-// ===== BIỂU ĐỒ =====
+// ===== CHART =====
 let chart;
 
 function updateChart(){
