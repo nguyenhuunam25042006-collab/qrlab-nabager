@@ -63,9 +63,16 @@ scanner.clear();
 
 let id = text.trim();
 
-// link → TB
-let match = id.match(/TB\d+/);
-if(match) id = match[0];
+// ===== THÊM: đọc link QR =====
+try{
+let url = new URL(id);
+let tb = url.searchParams.get("id");
+if(tb) id = tb;
+}catch(e){}
+
+// nếu link có dạng chứa TB001
+let matchLink = id.match(/TB\d+/);
+if(matchLink) id = matchLink[0];
 
 id = id.toUpperCase();
 currentDevice = id;
