@@ -14,7 +14,11 @@
         .device-info { flex: 1; }
         .device-media { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 110px; }
         .device-img { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid #ddd; }
-        .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; border-radius: 8px; }
+        
+        /* Hiệu ứng cho ô QR nhỏ */
+        .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; border-radius: 8px; cursor: zoom-in; transition: 0.3s; }
+        .device-qr:hover { transform: scale(1.05); border-color: #4a6cf7; }
+        
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid #ddd; background: #f8fafc; box-sizing: border-box; }
         button { padding: 10px 15px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.2s; }
         .fix { background: #2ecc71; color: white; width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; }
@@ -25,6 +29,13 @@
         .using { background: #f1c40f; color: black; }
         .broken { background: #e74c3c; }
         #history-list { font-size: 14px; max-height: 250px; overflow-y: auto; }
+
+        /* ===== CSS CHO MODAL PHÓNG TO ===== */
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center; backdrop-filter: blur(5px); }
+        .modal-content { background-color: white; padding: 25px; border-radius: 30px; text-align: center; max-width: 90%; animation: zoomIn 0.3s ease; }
+        #big-qr img { width: 280px !important; height: 280px !important; margin: 0 auto; }
+        .close-btn { margin-top: 20px; background: #333; color: white; width: 100%; padding: 12px; border-radius: 12px; }
+        @keyframes zoomIn { from { transform: scale(0.7); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
@@ -42,6 +53,15 @@
         <div class="card" style="text-align: center;">
             <button class="reset" onclick="resetAll()">🔄 Reset tất cả trạng thái</button>
             <button class="logout" onclick="logout()">🚪 Đăng xuất</button>
+        </div>
+    </div>
+
+    <div id="qrModal" class="modal" onclick="closeQR()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h3 id="modal-name" style="margin-bottom: 15px; color: #4a6cf7;">Tên thiết bị</h3>
+            <div id="big-qr"></div>
+            <p style="color: #666; margin-top: 15px; font-size: 14px;">Đưa điện thoại lại gần để quét mã</p>
+            <button class="close-btn" onclick="closeQR()">Đóng lại</button>
         </div>
     </div>
 
@@ -80,12 +100,29 @@
                     </div>
                     <div class="device-media">
                         <img src="images/${id}.jpg" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
-                        <div id="qr-${id}" class="device-qr"></div>
+                        <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')" title="Bấm để phóng to"></div>
                     </div>`;
                 listDiv.appendChild(devEl);
                 let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
                 new QRCode(document.getElementById(`qr-${id}`), { text: qrUrl, width: 100, height: 100 });
             });
+        }
+
+        // HÀM PHÓNG TO QR
+        function zoomQR(id, name) {
+            document.getElementById("modal-name").innerText = name + " (" + id + ")";
+            const bigQrDiv = document.getElementById("big-qr");
+            bigQrDiv.innerHTML = ""; // Xóa nội dung cũ
+            
+            let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
+            new QRCode(bigQrDiv, { text: qrUrl, width: 280, height: 280 });
+            
+            document.getElementById("qrModal").style.display = "flex";
+        }
+
+        // HÀM ĐÓNG MODAL
+        function closeQR() {
+            document.getElementById("qrModal").style.display = "none";
         }
 
         function renderHistory() {
@@ -104,7 +141,7 @@
         
         render(); 
         renderHistory();
-        setInterval(renderHistory, 2000); // Tự cập nhật lịch sử mỗi 2 giây
+        setInterval(renderHistory, 2000); 
     </script>
 </body>
 </html>
