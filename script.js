@@ -12,8 +12,9 @@ var db = firebase.database();
 let devices = {};
 let history = [];
 let currentDevice = null;
+let scanner = null;
 
-// ===== INIT DEVICES =====
+// ===== INIT 10 DEVICES =====
 function initDevices(){
   let obj = {};
   for(let i=1;i<=10;i++){
@@ -41,22 +42,62 @@ db.ref("history").on("value", snap=>{
   renderHistory();
 });
 
-// ===== SCAN =====
-function startScan(){
-  const scanner = new Html5Qrcode("reader");
+// ===== QUÉT QR PRO =====
+async function startScan(){
 
-  scanner.start(
-    { facingMode:"environment" },
-    { fps:10, qrbox:250 },
-    text=>{
-      currentDevice = text;
-      show();
-      scanner.stop();
+  const reader = document.getElementById("reader");
+  reader.innerHTML = "";
+
+  if(scanner){
+    try{
+      await scanner.stop();
+      await scanner.clear();
+    }catch(e){}
+  }
+
+  scanner = new Html5Qrcode("reader");
+
+  try{
+
+    // xin quyền camera
+    await navigator.mediaDevices.getUserMedia({ video:true });
+
+    const devicesList = await Html5Qrcode.getCameras();
+
+    if(!devicesList.length){
+      alert("Không có camera");
+      return;
     }
-  );
+
+    let cameraId = devicesList[0].id;
+
+    // ưu tiên camera sau
+    devicesList.forEach(d=>{
+      if(d.label.toLowerCase().includes("back")){
+        cameraId = d.id;
+      }
+    });
+
+    await scanner.start(
+      cameraId,
+      { fps:10, qrbox:250 },
+      (text)=>{
+        currentDevice = text;
+        show();
+
+        if(navigator.vibrate) navigator.vibrate(200);
+
+        scanner.stop();
+      }
+    );
+
+  }catch(err){
+    alert("❌ Không mở được camera\n👉 Dùng HTTPS hoặc localhost");
+    console.error(err);
+  }
 }
 
-// ===== SHOW =====
+// ===== HIỂN THỊ =====
 function show(){
   let d = devices[currentDevice];
   if(!d) return;
@@ -78,7 +119,6 @@ function startUse(){
   if(!currentDevice || !user) return alert("Thiếu dữ liệu");
 
   let d = devices[currentDevice];
-  if(!d) return;
 
   d.status="Đang sử dụng";
   d.user=user;
@@ -92,7 +132,7 @@ function stopUse(){
   if(!currentDevice) return;
 
   let d = devices[currentDevice];
-  if(!d || !d.startTime) return;
+  if(!d.startTime) return;
 
   let used = Date.now()-d.startTime;
   d.totalTime += used;
@@ -116,7 +156,6 @@ function reportError(){
   if(!currentDevice) return;
 
   let d = devices[currentDevice];
-  if(!d) return;
 
   d.status="Hỏng";
 
@@ -180,7 +219,7 @@ setInterval(()=>{
   if(currentDevice) show();
 },1000);
 
-// ===== AUTO LOAD DEVICE FROM LINK =====
+// ===== AUTO LINK QR =====
 const urlParams = new URLSearchParams(window.location.search);
 const device = urlParams.get("device");
 if(device){
