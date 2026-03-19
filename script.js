@@ -45,8 +45,14 @@ scanner.start(cam,{fps:10,qrbox:250},(text)=>{
 
 scanner.stop().then(()=>scanner.clear());
 
-let id=text.match(/TB\d+/);
-if(id) id=id[0];
+let id = text.trim();
+
+if(id.includes("http")){
+let match = id.match(/TB\d+/);
+if(match) id = match[0];
+}
+
+id = id.toUpperCase();
 
 handleScan(id);
 
