@@ -61,19 +61,16 @@ cam,
 
 (text)=>{
 
-// 🔥 FIX QUAN TRỌNG (không đơ)
 scanner.stop().then(()=>{
 scanner.clear();
 
 // ===== XỬ LÝ QR =====
 let id = text.trim();
 
-// link → thiết bị
 if(id.includes("479mv3qs")) id = "TB001";
 if(id.includes("abc123")) id = "TB002";
 if(id.includes("xyz456")) id = "TB003";
 
-// tự lấy TB001 từ link
 let match = id.match(/TB\d+/);
 if(match) id = match[0];
 
@@ -82,7 +79,6 @@ currentDevice = id;
 
 navigator.vibrate && navigator.vibrate(200);
 
-// delay tránh lag
 setTimeout(()=>{
 showDevice(currentDevice);
 updateChart();
@@ -116,7 +112,7 @@ let color="free";
 if(d.status==="Đang sử dụng") color="using";
 if(d.status==="Bị hỏng") color="broken";
 
-// ⏱ hiển thị thời gian
+// ⏱ HIỂN THỊ THỜI GIAN
 let timeText = "";
 
 if(d.start){
@@ -137,16 +133,13 @@ document.getElementById("result").innerHTML=`
 </div>
 `;
 }
-
 // ===== USE =====
 function useDevice(){
 if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
 
-// 🔥 lấy từ input (KHÔNG dùng prompt nữa)
-let nameInput = document.getElementById("username");
-let name = nameInput ? nameInput.value : "";
-
-if(!name) return alert("Nhập tên đi");
+// 👉 nhập tên
+let name = prompt("Nhập tên người dùng:");
+if(!name) return;
 
 let d = devices[currentDevice];
 
@@ -159,7 +152,7 @@ showDevice(currentDevice);
 updateChart();
 }
 
-// ===== STOP =====
+// ===== STOP (THÊM MỚI) =====
 function stopDevice(){
 if(!currentDevice) return;
 
@@ -215,7 +208,7 @@ datasets:[{data:[u,f,b]}]
 });
 }
 
-// 🔥 AUTO UPDATE TIME REALTIME
+// ===== AUTO UPDATE TIME =====
 setInterval(()=>{
 if(currentDevice) showDevice(currentDevice);
 },1000);
