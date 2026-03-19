@@ -1,97 +1,45 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="UTF-8">
-<title>QR Lab Login</title>
-
-<style>
-body{
-  margin:0;
-  font-family:-apple-system;
-  height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  background:linear-gradient(135deg,#4a6cf7,#7b9cff);
-}
-
-.box{
-  background:white;
-  padding:30px;
-  border-radius:20px;
-  width:320px;
-  text-align:center;
-  box-shadow:0 10px 30px rgba(0,0,0,0.2);
-}
-
-input{
-  width:100%;
-  padding:12px;
-  margin:10px 0;
-  border-radius:10px;
-  border:none;
-  background:#f1f5f9;
-}
-
-button{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:#4a6cf7;
-  color:white;
-  font-weight:bold;
-  cursor:pointer;
-}
-
-button:hover{
-  opacity:0.9;
-}
-
-h2{margin-bottom:20px;}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Lab Login</title>
+    <style>
+        body { margin:0; font-family:-apple-system; height:100vh; display:flex; justify-content:center; align-items:center; background:linear-gradient(135deg,#4a6cf7,#7b9cff); }
+        .box { background:white; padding:30px; border-radius:20px; width:320px; text-align:center; box-shadow:0 10px 30px rgba(0,0,0,0.2); }
+        input { width:100%; padding:12px; margin:10px 0; border-radius:10px; border:1px solid #ddd; background:#f1f5f9; box-sizing: border-box; }
+        button { width:100%; padding:12px; border:none; border-radius:10px; background:#4a6cf7; color:white; font-weight:bold; cursor:pointer; transition: 0.3s; }
+        button:hover { background: #3452d1; transform: scale(1.02); }
+        h2 { margin-bottom:20px; color: #333; }
+    </style>
 </head>
-
 <body>
+    <div class="box">
+        <h2>🔐 QR Lab Login</h2>
+        <input id="user" placeholder="Username (admin)">
+        <input id="pass" type="password" placeholder="Password (123)">
+        <button onclick="login()">Đăng nhập</button>
+    </div>
 
-<div class="box">
-  <h2>🔐 QR Lab Login</h2>
+    <script>
+        localStorage.removeItem("role"); // Reset mỗi khi vào trang login
+        
+        function login() {
+            let u = document.getElementById("user").value.trim();
+            let p = document.getElementById("pass").value.trim();
 
-  <input id="user" placeholder="Username">
-  <input id="pass" type="password" placeholder="Password">
-
-  <button onclick="login()">Đăng nhập</button>
-</div>
-
-<script>
-
-// 🔥 RESET ROLE (tránh lỗi cache)
-localStorage.removeItem("role");
-
-function login(){
-
-  let u = document.getElementById("user").value.trim();
-  let p = document.getElementById("pass").value.trim();
-
-  // ✅ ADMIN
-  if(u === "admin" && p === "123"){
-    localStorage.setItem("role","admin");
-    window.location.href = "./admin.html";
-    return;
-  }
-
-  // ✅ USER (nếu bạn muốn cho vào user)
-  if(u !== "" && p !== ""){
-    localStorage.setItem("role","user");
-    window.location.href = "./index.html";
-    return;
-  }
-
-  // ❌ FAIL
-  alert("❌ Nhập đầy đủ thông tin!");
-}
-
-</script>
-
+            if (u === "admin" && p === "123") {
+                localStorage.setItem("role", "admin");
+                window.location.href = "./admin.html";
+            } else if (u !== "" && p !== "") {
+                localStorage.setItem("role", "user");
+                window.location.href = "./index.html";
+            } else {
+                alert("❌ Vui lòng nhập đầy đủ thông tin!");
+            }
+        }
+        // Nhấn Enter để đăng nhập
+        document.addEventListener('keypress', (e) => { if(e.key === 'Enter') login(); });
+    </script>
 </body>
 </html>
