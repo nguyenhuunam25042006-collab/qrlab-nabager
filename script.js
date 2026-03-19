@@ -1,139 +1,18 @@
-// ===== FIREBASE CONFIG (THAY CỦA BẠN) =====
-const firebaseConfig = {
-apiKey: "YOUR_KEY",
-authDomain: "YOUR_PROJECT.firebaseapp.com",
-databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-projectId: "YOUR_PROJECT",
-};
-if(Object.keys(devices).length === 0){
-devices = {
-TB001:{name:"Tủ sấy",status:"Trống"},
-TB002:{name:"Hằn lún",status:"Trống"},
-TB003:{name:"Marshall",status:"Trống"},
-TB004:{name:"Đầm BTN",status:"Trống"},
-TB005:{name:"Parafin",status:"Trống"},
-TB006:{name:"Kéo dài",status:"Trống"},
-TB007:{name:"Brookfield",status:"Trống"},
-TB008:{name:"Tổn thất",status:"Trống"},
-TB009:{name:"Cắt bê tông",status:"Trống"},
-TB010:{name:"Bảo dưỡng",status:"Trống"}
-};
-db.ref("devices").set(devices);
-}
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
-
-// ===== DATA =====
-let devices = {};
-let history = [];
-let scanner;
-let currentDevice = null;
-
-// ===== LOAD DATA ONLINE =====
-db.ref("devices").on("value", snap=>{
-devices = snap.val() || {};
-updateChart();
-});
-
-db.ref("history").on("value", snap=>{
-history = snap.val() || [];
-renderHistory();
-});
-
-// ===== SCAN =====
-function startScan(){
-
-let reader=document.getElementById("reader");
-reader.innerHTML="";
-
-if(scanner){
-scanner.stop().then(()=>scanner.clear()).catch(()=>{});
-}
-
-scanner=new Html5Qrcode("reader");
-
-Html5Qrcode.getCameras().then(cameras=>{
-let cam=cameras[cameras.length-1].id;
-
-scanner.start(cam,{fps:10,qrbox:250},(text)=>{
-
-scanner.stop().then(()=>scanner.clear());
-
-let id = text.trim();
-
-if(id.includes("http")){
-let match = id.match(/TB\d+/);
-if(match) id = match[0];
-}
-
-id = id.toUpperCase();
-
-handleScan(id);
-
-});
-
-});
-}
-
-// ===== HANDLE =====
-function handleScan(id){
-
-if(!devices[id]){
-alert("Không có thiết bị");
-return;
-}
-
-currentDevice=id;
-show();
-
-}
-
-// ===== SHOW =====
-function show(){
-
-let d=devices[currentDevice];
-
-document.getElementById("result").innerHTML=`
-<h3>${d.name}</h3>
-<p>${d.status}</p>
-<p>👤 ${d.user||""}</p>
-`;
-
-}
-
-// ===== START =====
-function startUse(){
-
-let name=prompt("Tên:");
-
-let d=devices[currentDevice];
-
-d.status="Đang sử dụng";
-d.user=name;
-d.start=Date.now();
-
-db.ref("devices/"+currentDevice).set(d);
-
-}
-
-// ===== STOP =====
-function stopUse(){
-
-let d=devices[currentDevice];
-
-let end=Date.now();
+let used=Date.now()-d.startTime;
+d.totalTime=(d.totalTime||0)+used;
 
 history.push({
 device:currentDevice,
 user:d.user,
-time:(end-d.start)
+time:used
 });
 
 db.ref("history").set(history);
+}
 
 d.status="Trống";
 d.user="";
-d.start=null;
+d.startTime=null;
 
 db.ref("devices/"+currentDevice).set(d);
 
@@ -141,6 +20,8 @@ db.ref("devices/"+currentDevice).set(d);
 
 // ===== ERROR =====
 function reportError(){
+if(!currentDevice) return;
+
 devices[currentDevice].status="Hỏng";
 db.ref("devices/"+currentDevice).set(devices[currentDevice]);
 }
@@ -150,7 +31,7 @@ let chart;
 
 function updateChart(){
 
-let using=0, free=0, broken=0;
+let using=0,free=0,broken=0;
 
 Object.values(devices).forEach(d=>{
 if(d.status=="Đang sử dụng") using++;
@@ -182,12 +63,14 @@ function renderHistory(){
 let html="";
 
 history.slice(-10).reverse().forEach(h=>{
-html+=`
-<p>${h.device} - ${h.user} - ${Math.floor(h.time/1000)}s</p>
-`;
+html+=`<p>${h.device} - ${h.user} - ${format(h.time)}</p>`;
 });
 
 document.getElementById("history").innerHTML=html;
 
 }
+
+// ===== AUTO UPDATE =====
+setInterval(()=>{
+if(currentDevice) show();
 },1000);
