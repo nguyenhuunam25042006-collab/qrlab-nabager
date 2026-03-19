@@ -3,21 +3,29 @@ let currentDevice = "";
 
 // ===== DATA =====
 let devices = JSON.parse(localStorage.getItem("devices")) || {
-"TB001": {name:"Tủ sấy", status:"Trống"},
-"TB002": {name:"Hằn lún bánh xe", status:"Trống"},
-"TB003": {name:"Marshall", status:"Trống"},
-"TB004": {name:"Đầm BTN", status:"Trống"},
-"TB005": {name:"Parafin", status:"Trống"},
-"TB006": {name:"Kéo dài nhựa", status:"Trống"},
-"TB007": {name:"Brookfield", status:"Trống"},
-"TB008": {name:"Tổn thất nhựa", status:"Trống"},
-"TB009": {name:"Cắt bê tông", status:"Trống"},
-"TB010": {name:"Bảo dưỡng bê tông", status:"Trống"}
+"TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
+"TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
+"TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
+"TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
+"TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
+"TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
+"TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
+"TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
+"TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
+"TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
 };
 
 // ===== SAVE =====
 function save(){
 localStorage.setItem("devices", JSON.stringify(devices));
+}
+
+// ===== FORMAT TIME =====
+function formatTime(ms){
+let s = Math.floor(ms/1000);
+let m = Math.floor(s/60);
+s = s % 60;
+return m + "p " + s + "s";
 }
 
 // ===== SCAN =====
@@ -59,19 +67,16 @@ scanner.clear();
 // ===== XỬ LÝ QR =====
 let id = text.trim();
 
-// 👉 hỗ trợ link QR
 if(id.includes("479mv3qs")) id = "TB001";
 if(id.includes("abc123")) id = "TB002";
 if(id.includes("xyz456")) id = "TB003";
 
-// 👉 tự động lấy TB001 từ link
 let match = id.match(/TB\d+/);
 if(match) id = match[0];
 
 id = id.toUpperCase();
 currentDevice = id;
 
-// rung nhẹ
 navigator.vibrate && navigator.vibrate(200);
 
 setTimeout(()=>{
@@ -107,20 +112,63 @@ let color="free";
 if(d.status==="Đang sử dụng") color="using";
 if(d.status==="Bị hỏng") color="broken";
 
+// ⏱ HIỂN THỊ THỜI GIAN
+let timeText = "";
+
+if(d.start){
+timeText = "⏱ " + formatTime(Date.now() - d.start);
+}else{
+timeText = "🕒 " + formatTime(d.total || 0);
+}
+
 document.getElementById("result").innerHTML=`
 <div class="result">
 <h3>${d.name}</h3>
 <p>${id}</p>
 <span class="badge ${color}">${d.status}</span>
+
+<p>👤 ${d.user || "Chưa có"}</p>
+<p>${timeText}</p>
+
 </div>
 `;
 }
-
 // ===== USE =====
 function useDevice(){
 if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
 
-devices[currentDevice].status="Đang sử dụng";
+// 👉 nhập tên
+let name = prompt("Nhập tên người dùng:");
+if(!name) return;
+
+let d = devices[currentDevice];
+
+d.status = "Đang sử dụng";
+d.user = name;
+d.start = Date.now();
+
+save();
+showDevice(currentDevice);
+updateChart();
+}
+
+// ===== STOP (THÊM MỚI) =====
+function stopDevice(){
+if(!currentDevice) return;
+
+let d = devices[currentDevice];
+
+if(d.start){
+let used = Date.now() - d.start;
+d.total += used;
+d.start = null;
+
+alert("⏱ Đã dùng: " + formatTime(used));
+}
+
+d.status = "Trống";
+d.user = "";
+
 save();
 showDevice(currentDevice);
 updateChart();
@@ -145,7 +193,7 @@ let u=0,f=0,b=0;
 
 Object.values(devices).forEach(d=>{
 if(d.status==="Đang sử dụng") u++;
-  else if(d.status==="Bị hỏng") b++;
+else if(d.status==="Bị hỏng") b++;
 else f++;
 });
 
@@ -159,6 +207,11 @@ datasets:[{data:[u,f,b]}]
 }
 });
 }
+
+// ===== AUTO UPDATE TIME =====
+setInterval(()=>{
+if(currentDevice) showDevice(currentDevice);
+},1000);
 
 // INIT
 updateChart();
