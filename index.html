@@ -1,230 +1,157 @@
-let scanner = null;
-let currentDevice = "";
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Lab Pro - User</title>
+    
+    <style>
+        /* 🎨 CSS GIAO DIỆN CHUẨN ĐIỆN THOẠI TRÊN LAPTOP */
+        body {
+            margin: 0;
+            font-family: -apple-system, system-ui, sans-serif;
+            background: linear-gradient(135deg, #4a6cf7, #7b9cff);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center; /* Căn giữa Laptop */
+            padding: 20px 0;
+        }
 
-// ===== DATA =====
-let devices = JSON.parse(localStorage.getItem("devices")) || {
-"TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
-"TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
-"TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
-"TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
-"TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
-"TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
-"TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
-"TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
-"TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
-"TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
-};
+        /* Khung chứa chính (Giới hạn độ rộng như Phone) */
+        .main-container {
+            width: 90%;
+            max-width: 450px; /* Độ rộng chuẩn để Laptop nhìn đẹp */
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
 
-// ===== SAVE =====
-function save(){
-localStorage.setItem("devices", JSON.stringify(devices));
-}
+        .header-section {
+            text-align: center;
+            margin-bottom: 10px;
+        }
 
-// ===== FORMAT TIME =====
-function formatTime(ms){
-let s = Math.floor(ms/1000);
-let m = Math.floor(s/60);
-s = s % 60;
-return m + "p " + s + "s";
-}
+        .header-section h1 { margin: 0; font-size: 28px; }
+        .header-section p { margin: 5px 0; opacity: 0.8; font-size: 14px; }
 
-// ===== SCAN =====
-function startScan(){
+        /* Thẻ trắng chứa nội dung */
+        .card {
+            background: white;
+            border-radius: 30px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            color: #333;
+        }
 
-if(typeof Html5Qrcode === "undefined"){
-alert("❌ Chưa load thư viện QR");
-return;
-}
+        /* Vùng hiển thị Camera và Kết quả */
+        #reader {
+            width: 100%;
+            border-radius: 20px;
+            overflow: hidden;
+            background: #f0f0f0;
+            margin-bottom: 15px;
+        }
 
-const reader = document.getElementById("reader");
-reader.innerHTML = "";
+        #result {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-// stop scanner cũ
-if(scanner){
-scanner.stop().then(()=>scanner.clear()).catch(()=>{});
-}
+        /* CSS Nút bấm giống ảnh bạn gửi */
+        button {
+            width: 100%;
+            padding: 16px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 15px;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
 
-scanner = new Html5Qrcode("reader");
+        button:active { transform: scale(0.98); opacity: 0.9; }
 
-Html5Qrcode.getCameras().then(cameras=>{
+        #btn-scan { background: #4a6cf7; }  /* Xanh dương */
+        #btn-use { background: #2ecc71; }   /* Xanh lá */
+        #btn-stop { background: #f39c12; }  /* Cam */
+        #btn-error { background: #e74c3c; } /* Đỏ */
 
-if(!cameras.length){
-alert("❌ Không có camera");
-return;
-}
+        input {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 12px;
+            border: 1px solid #eee;
+            background: #f8fafc;
+            box-sizing: border-box;
+            font-size: 16px;
+            text-align: center;
+        }
 
-let cam = cameras[cameras.length - 1].id;
+        /* Biểu đồ Thống kê */
+        .chart-container {
+            height: 220px;
+            margin-top: 10px;
+        }
 
-scanner.start(
-cam,
-{fps:10, qrbox:250},
+        /* Badge trạng thái */
+        .badge {
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+            margin-top: 5px;
+        }
+        .free { background: #2ecc71; }
+        .using { background: #f1c40f; color: black; }
+        .broken { background: #e74c3c; }
+    </style>
+</head>
+<body>
 
-(text)=>{
+    <div class="main-container">
+        <div class="header-section">
+            <h1>🔬 QR Lab Pro</h1>
+            <p>Quản lý thiết bị thí nghiệm</p>
+        </div>
 
-scanner.stop().then(()=>{
-scanner.clear();
+        <div class="card">
+            <div id="reader"></div> <div id="result">
+                <p style="color: #999;">Quét mã trên máy để bắt đầu</p>
+            </div>
 
-// ===== XỬ LÝ QR =====
-let id = text.trim();
+            <button id="btn-scan" onclick="startScan()">📷 Quét QR</button>
+            
+            <input id="user-name" placeholder="Nhập tên người dùng...">
+            
+            <button id="btn-use" onclick="useDevice()">📅 Sử dụng</button>
+            <button id="btn-stop" onclick="stopDevice()">⏹ Kết thúc</button>
+            <button id="btn-error" onclick="errorDevice()">⚠️ Báo lỗi</button>
+        </div>
 
-if(id.includes("479mv3qs")) id = "TB001";
-if(id.includes("abc123")) id = "TB002";
-if(id.includes("xyz456")) id = "TB003";
+        <div class="card">
+            <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
+                📊 Thống kê thiết bị
+            </h3>
+            <div class="chart-container">
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+    </div>
 
-let match = id.match(/TB\d+/);
-if(match) id = match[0];
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="script.js"></script>
 
-id = id.toUpperCase();
-currentDevice = id;
-
-navigator.vibrate && navigator.vibrate(200);
-
-setTimeout(()=>{
-showDevice(currentDevice);
-updateChart();
-},200);
-
-}).catch(()=>{});
-
-},
-(err)=>{}
-);
-
-}).catch(()=>{
-alert("❌ Không mở được camera");
-});
-
-}
-
-// ===== SHOW =====
-function showDevice(id){
-
-document.getElementById("reader").innerHTML = "";
-
-let d = devices[id];
-
-if(!d){
-document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
-return;
-}
-
-let color="free";
-if(d.status==="Đang sử dụng") color="using";
-if(d.status==="Bị hỏng") color="broken";
-
-// ⏱ HIỂN THỊ THỜI GIAN
-let timeText = "";
-
-if(d.start){
-timeText = "⏱ " + formatTime(Date.now() - d.start);
-}else{
-timeText = "🕒 " + formatTime(d.total || 0);
-}
-
-document.getElementById("result").innerHTML=`
-<div class="result">
-<h3>${d.name}</h3>
-<p>${id}</p>
-<span class="badge ${color}">${d.status}</span>
-
-<p>👤 ${d.user || "Chưa có"}</p>
-<p>${timeText}</p>
-
-</div>
-`;
-}
-// ===== USE =====
-function useDevice(){
-if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
-
-// 👉 nhập tên
-let name = prompt("Nhập tên người dùng:");
-if(!name) return;
-
-let d = devices[currentDevice];
-
-d.status = "Đang sử dụng";
-d.user = name;
-d.start = Date.now();
-
-save();
-showDevice(currentDevice);
-updateChart();
-}
-
-// ===== STOP (THÊM MỚI) =====
-function stopDevice(){
-if(!currentDevice) return;
-
-let d = devices[currentDevice];
-
-if(d.start){
-let used = Date.now() - d.start;
-
-// 🔥 LƯU LỊCH SỬ
-let history = JSON.parse(localStorage.getItem("history")) || [];
-
-history.push({
-device: d.name,
-user: d.user,
-time: new Date().toLocaleString(),
-duration: formatTime(used)
-});
-
-localStorage.setItem("history", JSON.stringify(history));
-
-// ===== CODE CŨ =====
-d.total += used;
-d.start = null;
-
-alert("⏱ Đã dùng: " + formatTime(used));
-}
-
-d.status = "Trống";
-d.user = "";
-
-save();
-showDevice(currentDevice);
-updateChart();
-}
-// ===== ERROR =====
-function errorDevice(){
-if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
-
-devices[currentDevice].status="Bị hỏng";
-save();
-showDevice(currentDevice);
-updateChart();
-}
-
-// ===== CHART =====
-let chart;
-
-function updateChart(){
-
-let u=0,f=0,b=0;
-
-Object.values(devices).forEach(d=>{
-if(d.status==="Đang sử dụng") u++;
-else if(d.status==="Bị hỏng") b++;
-else f++;
-});
-
-if(chart) chart.destroy();
-
-chart=new Chart(document.getElementById("chart"),{
-type:"doughnut",
-data:{
-labels:["Đang dùng","Trống","Hỏng"],
-datasets:[{data:[u,f,b]}]
-}
-});
-}
-
-// ===== AUTO UPDATE TIME =====
-setInterval(()=>{
-if(currentDevice) showDevice(currentDevice);
-},1000);
-
-// INIT
-updateChart(); 
+</body>
+</html>
