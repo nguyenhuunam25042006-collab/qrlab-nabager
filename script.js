@@ -5,7 +5,21 @@ authDomain: "YOUR_PROJECT.firebaseapp.com",
 databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
 projectId: "YOUR_PROJECT",
 };
-
+if(Object.keys(devices).length === 0){
+devices = {
+TB001:{name:"Tủ sấy",status:"Trống"},
+TB002:{name:"Hằn lún",status:"Trống"},
+TB003:{name:"Marshall",status:"Trống"},
+TB004:{name:"Đầm BTN",status:"Trống"},
+TB005:{name:"Parafin",status:"Trống"},
+TB006:{name:"Kéo dài",status:"Trống"},
+TB007:{name:"Brookfield",status:"Trống"},
+TB008:{name:"Tổn thất",status:"Trống"},
+TB009:{name:"Cắt bê tông",status:"Trống"},
+TB010:{name:"Bảo dưỡng",status:"Trống"}
+};
+db.ref("devices").set(devices);
+}
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
