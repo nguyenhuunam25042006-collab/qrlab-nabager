@@ -43,11 +43,14 @@ db.ref("history").on("value", snap=>{
 });
 
 // ===== QUÉT QR PRO =====
+let scanner = null;
+
 async function startScan(){
 
   const reader = document.getElementById("reader");
   reader.innerHTML = "";
 
+  // reset scanner
   if(scanner){
     try{
       await scanner.stop();
@@ -59,6 +62,95 @@ async function startScan(){
 
   try{
 
+    // xin quyền camera
+    await navigator.mediaDevices.getUserMedia({ video:true });
+
+    const devices = await Html5Qrcode.getCameras();
+
+    if(!devices.length){
+      alert("❌ Không có camera");
+      return;
+    }
+
+    let cameraId = devices[0].id;
+
+    // ưu tiên camera sau (điện thoại)
+    devices.forEach(d=>{
+      if(d.label.toLowerCase().includes("back")){
+        cameraId = d.id;
+      }
+    });
+
+    await scanner.start(
+      cameraId,
+      {
+        fps: 15,
+        qrbox: { width: 300, height: 300 }
+      },
+      (decodedText) => {
+
+        console.log("QR RAW:", decodedText);
+
+        // 🔥 XỬ LÝ MỌI LOẠI QR
+        let deviceId = null;
+
+        try{
+          // 👉 nếu là link
+          if(decodedText.includes("http")){
+            const url = new URL(decodedText);
+
+            // ưu tiên ?device=
+            deviceId = url.searchParams.get("device");
+
+            // nếu không có thì lấy path cuối
+            if(!deviceId){
+              let parts = url.pathname.split("/");
+              deviceId = parts.pop();
+            }
+          }
+          else{
+            // 👉 nếu là text thường (TB001)
+            deviceId = decodedText.trim();
+          }
+
+        }catch(e){
+          // fallback
+          deviceId = decodedText.trim();
+        }
+
+        // 🔥 VALIDATE
+        if(!devicesDataExist(deviceId)){
+          alert("❌ QR không hợp lệ: " + deviceId);
+          return;
+        }
+
+        currentDevice = deviceId;
+        show();
+
+        alert("✅ Đã quét: " + deviceId);
+
+        if(navigator.vibrate){
+          navigator.vibrate(200);
+        }
+
+        scanner.stop();
+
+      },
+      (err) => {
+        // bỏ qua spam lỗi
+      }
+    );
+
+  }catch(err){
+    console.error(err);
+    alert("❌ Không mở được camera\n👉 Dùng HTTPS hoặc localhost");
+  }
+}
+
+// ===== CHECK DEVICE =====
+function devicesDataExist(id){
+  return devices && devices[id];
+}
     // xin quyền camera
     await navigator.mediaDevices.getUserMedia({ video:true });
 
