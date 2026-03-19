@@ -179,9 +179,27 @@ function logout(){
   localStorage.removeItem("role");
   window.location = "login.html";
 }
+  function renderHistory(){
+  let history = JSON.parse(localStorage.getItem("history")) || [];
+
+  let html="";
+  history.slice(-10).reverse().forEach(h=>{
+    html+=`
+    <div class="device">
+      <b>${h.device}</b><br>
+      👤 ${h.user}<br>
+      ⏱ ${h.duration}<br>
+      🕒 ${h.time}
+    </div>
+    `;
+  });
+
+  document.getElementById("history").innerHTML = html || "Chưa có dữ liệu";
+}
 
 // INIT
 render();
+
 
 </script>
 
