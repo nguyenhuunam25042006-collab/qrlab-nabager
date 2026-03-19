@@ -20,17 +20,20 @@ function save(){
 localStorage.setItem("devices", JSON.stringify(devices));
 }
 
-// ===== SCAN (FIX ĐƠ) =====
+// ===== SCAN =====
 function startScan(){
+
+if(typeof Html5Qrcode === "undefined"){
+alert("❌ Chưa load thư viện QR");
+return;
+}
 
 const reader = document.getElementById("reader");
 reader.innerHTML = "";
 
 // stop scanner cũ
 if(scanner){
-scanner.stop().then(()=>{
-scanner.clear();
-}).catch(()=>{});
+scanner.stop().then(()=>scanner.clear()).catch(()=>{});
 }
 
 scanner = new Html5Qrcode("reader");
@@ -38,7 +41,7 @@ scanner = new Html5Qrcode("reader");
 Html5Qrcode.getCameras().then(cameras=>{
 
 if(!cameras.length){
-alert("Không có camera");
+alert("❌ Không có camera");
 return;
 }
 
@@ -50,23 +53,27 @@ cam,
 
 (text)=>{
 
-// 👉 DỪNG TRƯỚC
 scanner.stop().then(()=>{
+scanner.clear();
 
+// ===== XỬ LÝ QR =====
 let id = text.trim();
 
-// nếu là link → map sang thiết bị
+// 👉 hỗ trợ link QR
 if(id.includes("479mv3qs")) id = "TB001";
 if(id.includes("abc123")) id = "TB002";
 if(id.includes("xyz456")) id = "TB003";
 
+// 👉 tự động lấy TB001 từ link
+let match = id.match(/TB\d+/);
+if(match) id = match[0];
+
 id = id.toUpperCase();
+currentDevice = id;
 
-currentDevice = id.toUpperCase();
-
+// rung nhẹ
 navigator.vibrate && navigator.vibrate(200);
 
-// delay tránh đơ
 setTimeout(()=>{
 showDevice(currentDevice);
 updateChart();
@@ -79,7 +86,7 @@ updateChart();
 );
 
 }).catch(()=>{
-alert("Không mở được camera");
+alert("❌ Không mở được camera");
 });
 
 }
@@ -92,7 +99,7 @@ document.getElementById("reader").innerHTML = "";
 let d = devices[id];
 
 if(!d){
-result.innerHTML="❌ Không tìm thấy thiết bị";
+document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
 return;
 }
 
@@ -100,7 +107,7 @@ let color="free";
 if(d.status==="Đang sử dụng") color="using";
 if(d.status==="Bị hỏng") color="broken";
 
-result.innerHTML=`
+document.getElementById("result").innerHTML=`
 <div class="result">
 <h3>${d.name}</h3>
 <p>${id}</p>
@@ -111,7 +118,7 @@ result.innerHTML=`
 
 // ===== USE =====
 function useDevice(){
-if(!currentDevice) return alert("Quét trước");
+if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
 
 devices[currentDevice].status="Đang sử dụng";
 save();
@@ -121,7 +128,7 @@ updateChart();
 
 // ===== ERROR =====
 function errorDevice(){
-if(!currentDevice) return alert("Quét trước");
+if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
 
 devices[currentDevice].status="Bị hỏng";
 save();
@@ -138,7 +145,7 @@ let u=0,f=0,b=0;
 
 Object.values(devices).forEach(d=>{
 if(d.status==="Đang sử dụng") u++;
-else if(d.status==="Bị hỏng") b++;
+  else if(d.status==="Bị hỏng") b++;
 else f++;
 });
 
