@@ -168,4 +168,4 @@ setInterval(() => { 
 }, 1000);
 
 checkUrl(); 
-updateChart();
+updateChart(); 
