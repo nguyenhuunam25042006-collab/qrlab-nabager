@@ -35,6 +35,15 @@ body{
   border-bottom:1px solid #ddd;
 }
 
+input{
+  width:100%;
+  padding:10px;
+  margin:10px 0;
+  border-radius:10px;
+  border:none;
+  background:#f1f5f9;
+}
+
 button{
   padding:8px 12px;
   border:none;
@@ -67,18 +76,25 @@ button{
 <div class="header">
 <h2>👨‍💼 Admin Dashboard</h2>
 </div>
-  <div class="card">
-  <h3>📅 Lịch sử sử dụng</h3>
-  <div id="history"></div>
-</div>
 
 <div class="container">
 
+<!-- 📅 HISTORY -->
+<div class="card">
+  <h3>📅 Lịch sử sử dụng</h3>
+  <div id="history">Chưa có dữ liệu</div>
+</div>
+
+<!-- 📋 DEVICE -->
 <div class="card">
   <h3>📋 Danh sách thiết bị</h3>
+
+  <input id="search" placeholder="🔍 Tìm thiết bị..." oninput="render()">
+
   <div id="list"></div>
 </div>
 
+<!-- ⚙️ CONTROL -->
 <div class="card">
   <h3>⚙️ Quản lý</h3>
   <button class="reset" onclick="resetAll()">Reset tất cả</button>
@@ -89,12 +105,10 @@ button{
 
 <script>
 
-// 🔐 PHÂN QUYỀN
-let role = localStorage.getItem("role");
-
-if(role !== "admin"){
+// 🔐 CHECK ROLE
+if(localStorage.getItem("role") !== "admin"){
   alert("❌ Không có quyền!");
-  window.location = "login.html";
+  location="login.html";
 }
 
 // ===== LOAD DATA =====
@@ -108,12 +122,17 @@ function formatTime(ms){
   return m + "p " + s + "s";
 }
 
-// ===== RENDER =====
+// ===== RENDER DEVICE + SEARCH =====
 function render(){
 
+  let keyword = document.getElementById("search").value.toLowerCase();
   let html = "";
 
   Object.entries(devices).forEach(([id,d])=>{
+
+    if(!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)){
+      return;
+    }
 
     let color="free";
     if(d.status==="Đang sử dụng") color="using";
@@ -134,52 +153,11 @@ function render(){
     `;
   });
 
-  document.getElementById("list").innerHTML = html;
+  document.getElementById("list").innerHTML = html || "Không tìm thấy";
 }
 
-// ===== SAVE =====
-function save(){
-  localStorage.setItem("devices", JSON.stringify(devices));
-}
-
-// ===== SỬA LỖI =====
-function fix(id){
-  devices[id].status = "Trống";
-  devices[id].user = "";
-  devices[id].start = null;
-  save();
-  render();
-}
-
-// ===== XÓA =====
-function removeDevice(id){
-  if(confirm("Xóa thiết bị?")){
-    delete devices[id];
-    save();
-    render();
-  }
-}
-
-// ===== RESET =====
-function resetAll(){
-  if(confirm("Reset toàn bộ?")){
-    Object.keys(devices).forEach(id=>{
-      devices[id].status="Trống";
-      devices[id].user="";
-      devices[id].start=null;
-      devices[id].total=0;
-    });
-    save();
-    render();
-  }
-}
-
-// ===== LOGOUT =====
-function logout(){
-  localStorage.removeItem("role");
-  window.location = "login.html";
-}
-  function renderHistory(){
+// ===== HISTORY =====
+function renderHistory(){
   let history = JSON.parse(localStorage.getItem("history")) || [];
 
   let html="";
@@ -197,9 +175,58 @@ function logout(){
   document.getElementById("history").innerHTML = html || "Chưa có dữ liệu";
 }
 
+// ===== SAVE =====
+function save(){
+  localStorage.setItem("devices", JSON.stringify(devices));
+  render();
+  renderHistory();
+}
+
+// ===== FIX =====
+function fix(id){
+  devices[id].status = "Trống";
+  devices[id].user = "";
+  devices[id].start = null;
+  save();
+}
+
+// ===== DELETE =====
+function removeDevice(id){
+  if(confirm("Xóa thiết bị?")){
+    delete devices[id];
+    save();
+  }
+}
+
+// ===== RESET =====
+function resetAll(){
+  if(confirm("Reset toàn bộ?")){
+    Object.keys(devices).forEach(id=>{
+      devices[id].status="Trống";
+      devices[id].user="";
+      devices[id].start=null;
+      devices[id].total=0;
+    });
+    save();
+  }
+}
+
+// ===== LOGOUT =====
+function logout(){
+  localStorage.removeItem("role");
+  location="login.html";
+}
+
+// 🔥 REALTIME UPDATE
+window.addEventListener("storage", ()=>{
+  devices = JSON.parse(localStorage.getItem("devices")) || {};
+  render();
+  renderHistory();
+});
+
 // INIT
 render();
-
+renderHistory();
 
 </script>
 
