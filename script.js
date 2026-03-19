@@ -20,7 +20,7 @@ function save(){
 localStorage.setItem("devices", JSON.stringify(devices));
 }
 
-// ===== FORMAT TIME =====
+// ===== TIME =====
 function formatTime(ms){
 let s = Math.floor(ms/1000);
 let m = Math.floor(s/60);
@@ -32,14 +32,13 @@ return m + "p " + s + "s";
 function startScan(){
 
 if(typeof Html5Qrcode === "undefined"){
-alert("❌ Chưa load thư viện QR");
+alert("❌ Chưa load QR");
 return;
 }
 
 const reader = document.getElementById("reader");
 reader.innerHTML = "";
 
-// stop scanner cũ
 if(scanner){
 scanner.stop().then(()=>scanner.clear()).catch(()=>{});
 }
@@ -55,22 +54,16 @@ return;
 
 let cam = cameras[cameras.length - 1].id;
 
-scanner.start(
-cam,
-{fps:10, qrbox:250},
+scanner.start(cam,{fps:10, qrbox:250},
 
 (text)=>{
 
 scanner.stop().then(()=>{
 scanner.clear();
 
-// ===== XỬ LÝ QR =====
 let id = text.trim();
 
-if(id.includes("479mv3qs")) id = "TB001";
-if(id.includes("abc123")) id = "TB002";
-if(id.includes("xyz456")) id = "TB003";
-
+// link → TB
 let match = id.match(/TB\d+/);
 if(match) id = match[0];
 
@@ -84,16 +77,11 @@ showDevice(currentDevice);
 updateChart();
 },200);
 
-}).catch(()=>{});
-
-},
-(err)=>{}
-);
-
-}).catch(()=>{
-alert("❌ Không mở được camera");
 });
 
+});
+
+});
 }
 
 // ===== SHOW =====
@@ -104,7 +92,7 @@ document.getElementById("reader").innerHTML = "";
 let d = devices[id];
 
 if(!d){
-document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
+document.getElementById("result").innerHTML="❌ Không có thiết bị";
 return;
 }
 
@@ -112,62 +100,54 @@ let color="free";
 if(d.status==="Đang sử dụng") color="using";
 if(d.status==="Bị hỏng") color="broken";
 
-// ⏱ HIỂN THỊ THỜI GIAN
-let timeText = "";
-
-if(d.start){
-timeText = "⏱ " + formatTime(Date.now() - d.start);
-}else{
-timeText = "🕒 " + formatTime(d.total || 0);
-}
+let time = d.start
+? "⏱ " + formatTime(Date.now()-d.start)
+: "🕒 " + formatTime(d.total || 0);
 
 document.getElementById("result").innerHTML=`
 <div class="result">
 <h3>${d.name}</h3>
 <p>${id}</p>
 <span class="badge ${color}">${d.status}</span>
-
 <p>👤 ${d.user || "Chưa có"}</p>
-<p>${timeText}</p>
-
+<p>${time}</p>
 </div>
 `;
 }
+
 // ===== USE =====
 function useDevice(){
-if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
+if(!currentDevice) return alert("Quét trước");
 
-// 👉 nhập tên
-let name = prompt("Nhập tên người dùng:");
-if(!name) return;
+let name = document.getElementById("username").value;
+if(!name) return alert("Nhập tên");
 
 let d = devices[currentDevice];
 
-d.status = "Đang sử dụng";
-d.user = name;
-d.start = Date.now();
+d.status="Đang sử dụng";
+d.user=name;
+d.start=Date.now();
 
 save();
 showDevice(currentDevice);
 updateChart();
 }
-
-// ===== STOP (THÊM MỚI) =====
+// ===== STOP =====
 function stopDevice(){
 if(!currentDevice) return;
 
 let d = devices[currentDevice];
 
 if(d.start){
-let used = Date.now() - d.start;
+let used = Date.now()-d.start;
 d.total += used;
-d.start = null;
+d.start=null;
 
-alert("⏱ Đã dùng: " + formatTime(used));
+alert("⏱ Đã dùng: "+formatTime(used));
 }
 
-d.status = "Trống";
-d.user = "";
+d.status="Trống";
+d.user="";
 
 save();
 showDevice(currentDevice);
@@ -176,9 +156,10 @@ updateChart();
 
 // ===== ERROR =====
 function errorDevice(){
-if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
+if(!currentDevice) return;
 
 devices[currentDevice].status="Bị hỏng";
+
 save();
 showDevice(currentDevice);
 updateChart();
@@ -208,10 +189,9 @@ datasets:[{data:[u,f,b]}]
 });
 }
 
-// ===== AUTO UPDATE TIME =====
+// realtime
 setInterval(()=>{
 if(currentDevice) showDevice(currentDevice);
 },1000);
 
-// INIT
 updateChart();
