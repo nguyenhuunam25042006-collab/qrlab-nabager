@@ -1,234 +1,178 @@
 let scanner = null;
 let currentDevice = "";
+let chart = null;
 
-// ===== DATA =====
+// ===== 1. DỮ LIỆU THIẾT BỊ =====
 let devices = JSON.parse(localStorage.getItem("devices")) || {
-"TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
-"TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
-"TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
-"TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
-"TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
-"TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
-"TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
-"TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
-"TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
-"TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
+    "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
+    "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
+    "TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
+    "TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
+    "TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
+    "TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
+    "TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
+    "TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
+    "TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
+    "TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
 };
 
-// ===== SAVE =====
+// ===== 2. LƯU & ĐỊNH DẠNG =====
 function save(){
-localStorage.setItem("devices", JSON.stringify(devices));
+    localStorage.setItem("devices", JSON.stringify(devices));
 }
 
-// ===== FORMAT TIME =====
 function formatTime(ms){
-let s = Math.floor(ms/1000);
-let m = Math.floor(s/60);
-s = s % 60;
-return m + "p " + s + "s";
+    let s = Math.floor(ms/1000);
+    let m = Math.floor(s/60);
+    return m + "p " + (s % 60) + "s";
 }
 
-// ===== SCAN =====
+// ===== 3. QUÉT QR (Sửa lỗi không bấm được) =====
 function startScan(){
-
-if(typeof Html5Qrcode === "undefined"){
-alert("❌ Chưa load thư viện QR");
-return;
-}
-
-const reader = document.getElementById("reader");
-reader.innerHTML = "";
-
-// stop scanner cũ
-if(scanner){
-scanner.stop().then(()=>scanner.clear()).catch(()=>{});
-}
-
-scanner = new Html5Qrcode("reader");
-
-Html5Qrcode.getCameras().then(cameras=>{
-
-if(!cameras.length){
-alert("❌ Không có camera");
-return;
-}
-
-let cam = cameras[cameras.length - 1].id;
-
-scanner.start(
-cam,
-{fps:10, qrbox:250},
-
-(text)=>{
-
-scanner.stop().then(()=>{
-scanner.clear();
-
-// ===== XỬ LÝ QR =====
-let decodedText = text.trim();
-
-// 1. Nếu quét trúng link (từ Admin tạo), ta bóc tách lấy ID sau dấu "="
-if (decodedText.includes("id=")) {
-    currentDevice = decodedText.split("id=").pop().toUpperCase();
-} 
-// 2. Nếu quét mã QR cũ hoặc mã thủ công (chỉ có chữ TB...)
-else {
-    let match = decodedText.match(/TB\d+/i);
-    if(match) {
-        currentDevice = match[0].toUpperCase();
-    } else {
-        currentDevice = decodedText.toUpperCase();
+    if(typeof Html5Qrcode === "undefined"){
+        alert("❌ Chưa load thư viện QR");
+        return;
     }
+
+    const reader = document.getElementById("reader");
+    reader.innerHTML = "";
+
+    if(scanner){
+        scanner.stop().then(()=>scanner.clear()).catch(()=>{});
+    }
+
+    scanner = new Html5Qrcode("reader");
+
+    Html5Qrcode.getCameras().then(cameras=>{
+        if(!cameras.length){ alert("❌ Không có camera"); return; }
+        
+        let cam = cameras[cameras.length - 1].id;
+        scanner.start(cam, {fps:10, qrbox:250}, (text)=>{
+            scanner.stop().then(()=>{
+                scanner.clear();
+                
+                let decodedText = text.trim();
+                // Bóc tách ID (xử lý link từ Admin)
+                if (decodedText.includes("id=")) {
+                    currentDevice = decodedText.split("id=").pop().toUpperCase();
+                } else {
+                    let match = decodedText.match(/TB\d+/i);
+                    currentDevice = match ? match[0].toUpperCase() : decodedText.toUpperCase();
+                }
+
+                if (navigator.vibrate) navigator.vibrate(200);
+                showDevice(currentDevice);
+                updateChart();
+            }).catch(()=>{});
+        }, (err)=>{});
+    }).catch(()=>{ alert("❌ Không mở được camera"); });
 }
 
-// Rung một cái cho biết đã nhận diện xong
-if (navigator.vibrate) navigator.vibrate(200);
-
-setTimeout(() => {
-    showDevice(currentDevice);
-    updateChart();
-}, 200);
-
-// ===== SHOW =====
+// ===== 4. HIỂN THỊ THIẾT BỊ (Đã tách riêng ra ngoài) =====
 function showDevice(id){
+    const resultDiv = document.getElementById("result");
+    if(!resultDiv) return;
 
-document.getElementById("reader").innerHTML = "";
+    let d = devices[id];
+    if(!d){
+        resultDiv.innerHTML="❌ Không tìm thấy thiết bị";
+        return;
+    }
 
-let d = devices[id];
+    let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
+    let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
 
-if(!d){
-document.getElementById("result").innerHTML="❌ Không tìm thấy thiết bị";
-return;
-}
-
-let color="free";
-if(d.status==="Đang sử dụng") color="using";
-if(d.status==="Bị hỏng") color="broken";
-
-// ⏱ HIỂN THỊ THỜI GIAN
-let timeText = "";
-
-if(d.start){
-timeText = "⏱ " + formatTime(Date.now() - d.start);
-}else{
-timeText = "🕒 " + formatTime(d.total || 0);
-
-  document.getElementById("result").innerHTML=`
+    resultDiv.innerHTML = `
         <div class="result" style="text-align:center;">
-            <img src="images/${id}.jpg" style="width:150px; border-radius:10px; margin-bottom:10px;" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
-            <h3>${d.name}</h3>
-            <p>${id}</p>
+            <img src="images/${id}.jpg" style="width:180px; height:180px; object-fit:cover; border-radius:15px; margin-bottom:10px;" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+            <h3 style="margin:5px 0;">${d.name}</h3>
+            <p style="color:#666; margin:0;">${id}</p>
             <span class="badge ${color}">${d.status}</span>
-            <p>👤 ${d.user || "Chưa có"}</p>
-            <p style="font-size:1.2em; font-weight:bold;">${timeText}</p>
+            <p style="margin:10px 0 5px 0;">👤 ND: <b>${d.user || "Chưa có"}</b></p>
+            <p style="font-size:1.3em; font-weight:bold; color:#4a6cf7;">${timeText}</p>
         </div>
     `;
 }
 
-document.getElementById("result").innerHTML=`
-<div class="result">
-<h3>${d.name}</h3>
-<p>${id}</p>
-<span class="badge ${color}">${d.status}</span>
-
-<p>👤 ${d.user || "Chưa có"}</p>
-<p>${timeText}</p>
-
-</div>
-`;
-}
-// ===== USE =====
+// ===== 5. ĐIỀU KHIỂN =====
 function useDevice(){
-if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
+    if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
+    let name = prompt("Nhập tên người dùng:");
+    if(!name) return;
 
-// 👉 nhập tên
-let name = prompt("Nhập tên người dùng:");
-if(!name) return;
-
-let d = devices[currentDevice];
-
-d.status = "Đang sử dụng";
-d.user = name;
-d.start = Date.now();
-
-save();
-showDevice(currentDevice);
-updateChart();
+    let d = devices[currentDevice];
+    d.status = "Đang sử dụng";
+    d.user = name;
+    d.start = Date.now();
+    save();
+    showDevice(currentDevice);
+    updateChart();
 }
 
-// ===== STOP (THÊM MỚI) =====
 function stopDevice(){
-if(!currentDevice) return;
-
-let d = devices[currentDevice];
-
-if(d.start){
-let used = Date.now() - d.start;
-
-// 🔥 LƯU LỊCH SỬ
-let history = JSON.parse(localStorage.getItem("history")) || [];
-
-history.push({
-device: d.name,
-user: d.user,
-time: new Date().toLocaleString(),
-duration: formatTime(used)
-});
-
-localStorage.setItem("history", JSON.stringify(history));
-
-// ===== CODE CŨ =====
-d.total += used;
-d.start = null;
-
-alert("⏱ Đã dùng: " + formatTime(used));
+    if(!currentDevice) return;
+    let d = devices[currentDevice];
+    if(d.start){
+        let used = Date.now() - d.start;
+        let history = JSON.parse(localStorage.getItem("history")) || [];
+        history.push({
+            device: d.name, user: d.user,
+            time: new Date().toLocaleString(),
+            duration: formatTime(used)
+        });
+        localStorage.setItem("history", JSON.stringify(history));
+        d.total += used;
+        d.start = null;
+    }
+    d.status = "Trống"; d.user = "";
+    save();
+    showDevice(currentDevice);
+    updateChart();
 }
 
-d.status = "Trống";
-d.user = "";
-
-save();
-showDevice(currentDevice);
-updateChart();
-}
-// ===== ERROR =====
 function errorDevice(){
-if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
-
-devices[currentDevice].status="Bị hỏng";
-save();
-showDevice(currentDevice);
-updateChart();
+    if(!currentDevice) return alert("⚠️ Quét thiết bị trước");
+    devices[currentDevice].status = "Bị hỏng";
+    save();
+    showDevice(currentDevice);
+    updateChart();
 }
 
-// ===== CHART =====
-let chart;
-
+// ===== 6. BIỂU ĐỒ =====
 function updateChart(){
+    let u=0, f=0, b=0;
+    Object.values(devices).forEach(d => {
+        if(d.status==="Đang sử dụng") u++;
+        else if(d.status==="Bị hỏng") b++;
+        else f++;
+    });
 
-let u=0,f=0,b=0;
-
-Object.values(devices).forEach(d=>{
-if(d.status==="Đang sử dụng") u++;
-else if(d.status==="Bị hỏng") b++;
-else f++;
-});
-
-if(chart) chart.destroy();
-
-chart=new Chart(document.getElementById("chart"),{
-type:"doughnut",
-data:{
-labels:["Đang dùng","Trống","Hỏng"],
-datasets:[{data:[u,f,b]}]
+    const ctx = document.getElementById("chart");
+    if(!ctx) return;
+    if(chart) chart.destroy();
+    chart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+            labels: ["Đang dùng", "Trống", "Hỏng"],
+            datasets: [{ data: [u,f,b], backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+    });
 }
-});
+
+// Tự nhận diện link từ QR Admin khi vừa vào trang
+function checkUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id && devices[id.toUpperCase()]) {
+        currentDevice = id.toUpperCase();
+        showDevice(currentDevice);
+    }
 }
 
-// ===== AUTO UPDATE TIME =====
-setInterval(()=>{
-if(currentDevice) showDevice(currentDevice);
-},1000);
+// Cập nhật thời gian nhảy giây
+setInterval(() => { if (currentDevice && devices[currentDevice].start) showDevice(currentDevice); }, 1000);
 
-// INIT
+// ===== INIT =====
+checkUrl();
 updateChart();
