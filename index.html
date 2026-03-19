@@ -1,98 +1,55 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Lab Pro Max</title>
-
-<!-- QR -->
 <script src="https://unpkg.com/html5-qrcode"></script>
-
-<!-- Chart -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- 🔥 Firebase FIX (BẢN 8) -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<style>
-body{
-margin:0;
-font-family:-apple-system;
-background:#0f172a;
-color:white;
-}
-
-.container{
-max-width:420px;
-margin:auto;
-padding:20px;
-}
-
-.card{
-background:#1e293b;
-border-radius:20px;
-padding:20px;
-margin-top:15px;
-}
-
-button{
-width:100%;
-padding:15px;
-border:none;
-border-radius:12px;
-margin-top:10px;
-font-weight:bold;
-}
-
-.scan{background:#3b82f6;color:white;}
-.use{background:#22c55e;color:white;}
-.stop{background:#eab308;color:white;}
-.error{background:#ef4444;color:white;}
-
-.status{
-padding:5px 10px;
-border-radius:10px;
-display:inline-block;
-margin-top:10px;
-}
-
-.free{background:#22c55e;}
-.using{background:#eab308;}
-.broken{background:#ef4444;}
-</style>
 </head>
 
 <body>
 
-<div class="container">
+<h2>Test QR</h2>
 
-<h2>📱 QR Lab Pro Max</h2>
+<button onclick="startScan()">Quét QR</button>
 
-<div class="card">
-<button class="scan" onclick="startScan()">📷 Quét QR</button>
+<div id="reader" style="width:300px;"></div>
 
-<div id="reader"></div>
-<div id="result"></div>
+<script>
+let scanner;
 
-<button class="use" onclick="startUse()">📅 Sử dụng</button>
-<button class="stop" onclick="stopUse()">⏹ Kết thúc</button>
-<button class="error" onclick="reportError()">⚠ Báo lỗi</button>
-</div>
+function startScan(){
 
-<div class="card">
-<h3>📊 Thống kê</h3>
-<canvas id="chart"></canvas>
-</div>
+const reader = document.getElementById("reader");
+reader.innerHTML="";
 
-<div class="card">
-<h3>📜 Lịch sử</h3>
-<div id="history"></div>
-</div>
+if(scanner){
+scanner.stop().then(()=>scanner.clear()).catch(()=>{});
+}
 
-</div>
+scanner = new Html5Qrcode("reader");
 
-<script src="script.js"></script>
+Html5Qrcode.getCameras().then(cameras => {
+
+if(!cameras.length){
+alert("Không có camera");
+return;
+}
+
+let cam = cameras[0].id;
+
+scanner.start(
+cam,
+{fps:10,qrbox:250},
+(text)=>{
+alert("Quét được: " + text);
+}
+);
+
+}).catch(err=>{
+alert("Lỗi: "+err);
+});
+
+}
+</script>
 
 </body>
 </html>
