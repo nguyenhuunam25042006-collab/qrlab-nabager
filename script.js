@@ -1,41 +1,58 @@
+// ===== 1. CẤU HÌNH FIREBASE CỦA NAM =====
+const firebaseConfig = {
+    apiKey: "AIzaSyADJ5ugzW6ttbiUymfEkjBCJ-6Cd5UaCNc",
+    authDomain: "qrlab-c1704.firebaseapp.com",
+    databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com",
+    projectId: "qrlab-c1704",
+    storageBucket: "qrlab-c1704.firebasestorage.app",
+    messagingSenderId: "307225910652",
+    appId: "1:307225910652:web:364021a27bd2798ba618f9"
+};
+
+// Khởi tạo Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
 let scanner = null;
 let currentDevice = "";
 let chart = null;
+let devices = {}; // Dữ liệu sẽ được tải từ Firebase
 
-// ===== 1. DỮ LIỆU 10 THIẾT BỊ =====
-let devices = JSON.parse(localStorage.getItem("devices")) || {
-    "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
-    "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
-    "TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
-    "TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
-    "TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
-    "TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
-    "TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
-    "TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
-    "TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
-    "TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
-};
+// ===== 2. ĐỒNG BỘ DỮ LIỆU THỜI GIAN THỰC =====
+// Lắng nghe thay đổi từ Cloud để cập nhật giao diện
+db.ref('devices').on('value', (snapshot) => {
+    devices = snapshot.val() || {};
+    if (currentDevice) showDevice(currentDevice);
+    updateChart();
+});
 
-function save() { localStorage.setItem("devices", JSON.stringify(devices)); }
-function formatTime(ms) { let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
+function save() {
+    // Lưu trạng thái thiết bị lên Cloud
+    db.ref('devices').set(devices);
+}
 
-// ===== 2. HÀM QUÉT QR (ĐÃ THÊM TÍNH NĂNG NHẬP TAY KHI LỖI) =====
+function formatTime(ms) {
+    let s = Math.floor(ms / 1000);
+    return Math.floor(s / 60) + "p " + (s % 60) + "s";
+}
+
+// ===== 3. HÀM QUÉT QR THÔNG MINH =====
 function startScan() {
-    if(typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
+    if (typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
     const reader = document.getElementById("reader");
     reader.innerHTML = "";
-    if(scanner) scanner.stop().then(()=>scanner.clear()).catch(()=>{});
+    if (scanner) scanner.stop().then(() => scanner.clear()).catch(() => { });
     scanner = new Html5Qrcode("reader");
 
     Html5Qrcode.getCameras().then(cameras => {
         let cam = cameras[cameras.length - 1].id;
-        scanner.start(cam, {fps:10, qrbox:250}, (text) => {
+        scanner.start(cam, { fps: 10, qrbox: 250 }, (text) => {
             scanner.stop().then(() => {
                 scanner.clear();
                 let rawText = text.trim();
                 let foundId = "";
 
-                // Bước 1: Thử bóc tách ID từ Link hoặc nội dung QR
+                // Bước 1: Bóc tách ID
                 if (rawText.includes("id=")) {
                     foundId = rawText.split("id=").pop().split("&")[0].toUpperCase();
                 } else {
@@ -43,33 +60,29 @@ function startScan() {
                     foundId = match ? match[0].toUpperCase() : rawText.toUpperCase();
                 }
 
-                // Bước 2: NẾU QUÉT RA LINK LẠ (Như link rút gọn Me-QR)
-                // Hoặc ID không tồn tại trong danh sách 10 máy
+                // Bước 2: Xử lý nếu QR lạ hoặc sai
                 if (!devices[foundId]) {
-                    console.log("Dữ liệu QR lạ:", rawText);
-                    let manualId = prompt("❌ Không nhận diện được máy!\nVui lòng nhập ID thủ công (Ví dụ: TB001):");
-                    if (manualId) {
-                        foundId = manualId.toUpperCase().trim();
-                    }
+                    let manualId = prompt("❌ QR lạ hoặc chưa có máy này!\nNhập ID thủ công (Ví dụ: TB001):");
+                    if (manualId) foundId = manualId.toUpperCase().trim();
                 }
 
-                // Bước 3: Kiểm tra và hiển thị
+                // Bước 3: Hiển thị
                 if (devices[foundId]) {
                     currentDevice = foundId;
                     if (navigator.vibrate) navigator.vibrate(200);
                     showDevice(currentDevice);
-                    updateChart();
                 } else if (foundId !== "") {
                     alert("❌ Thiết bị " + foundId + " không tồn tại!");
                 }
             });
         });
-    }).catch(err => alert("❌ Không mở được camera: " + err));
+    }).catch(err => alert("❌ Lỗi camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ =====
+// ===== 4. HIỂN THỊ THIẾT BỊ =====
 function showDevice(id) {
     let d = devices[id];
+    if (!d) return;
     let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
     let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
 
@@ -83,89 +96,84 @@ function showDevice(id) {
         </div>`;
 }
 
-// ===== 4. ĐIỀU KHIỂN =====
+// ===== 5. ĐIỀU KHIỂN (SỬ DỤNG / KẾT THÚC) =====
 function useDevice() {
-    if(!currentDevice) return alert("⚠️ Hãy quét QR!");
+    if (!currentDevice) return alert("⚠️ Hãy quét QR!");
     let nameInput = document.getElementById("user-name");
     let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên người dùng:");
-    
-    if(!name) return;
-    
+
+    if (!name) return;
+
     let d = devices[currentDevice];
-    if(d.status === "Đang sử dụng") return alert("❌ Máy này đang có người dùng!");
-    
-    d.status = "Đang sử dụng"; 
-    d.user = name; 
+    if (d.status === "Đang sử dụng") return alert("❌ Máy này đang có người dùng!");
+
+    d.status = "Đang sử dụng";
+    d.user = name;
     d.start = Date.now();
-    save(); 
-    showDevice(currentDevice); 
-    updateChart();
+    save(); // Cập nhật lên Cloud
 }
 
 function stopDevice() {
-    if(!currentDevice) return;
+    if (!currentDevice) return;
     let d = devices[currentDevice];
-    if(d.start) {
+    if (d.start) {
         let used = Date.now() - d.start;
-        let history = JSON.parse(localStorage.getItem("history")) || [];
-        history.push({ 
-            device: d.name, 
-            user: d.user, 
-            time: new Date().toLocaleString(), 
-            duration: formatTime(used) 
+        // Gửi lịch sử lên Cloud
+        db.ref('history').push({
+            device: d.name,
+            user: d.user,
+            time: new Date().toLocaleString(),
+            duration: formatTime(used)
         });
-        localStorage.setItem("history", JSON.stringify(history));
-        d.total += used; 
+        d.total = (d.total || 0) + used;
         d.start = null;
         alert("✅ Đã kết thúc! Thời gian dùng: " + formatTime(used));
     }
-    d.status = "Trống"; 
+    d.status = "Trống";
     d.user = "";
-    save(); 
-    showDevice(currentDevice); 
-    updateChart();
+    save(); // Cập nhật lên Cloud
 }
 
 function errorDevice() {
-    if(!currentDevice) return alert("⚠️ Quét QR trước!");
-    if(confirm("Xác nhận báo hỏng thiết bị này?")) {
+    if (!currentDevice) return alert("⚠️ Quét QR trước!");
+    if (confirm("Xác nhận báo hỏng thiết bị này?")) {
         devices[currentDevice].status = "Bị hỏng";
-        save(); 
-        showDevice(currentDevice); 
-        updateChart();
+        save();
     }
 }
 
-// ===== 5. BIỂU ĐỒ =====
+// ===== 6. BIỂU ĐỒ =====
 function updateChart() {
-    let u=0, f=0, b=0;
-    Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
-    if(chart) chart.destroy();
+    let u = 0, f = 0, b = 0;
+    Object.values(devices).forEach(d => {
+        if (d.status === "Đang sử dụng") u++;
+        else if (d.status === "Bị hỏng") b++;
+        else f++;
+    });
+    if (chart) chart.destroy();
     let ctx = document.getElementById("chart");
-    if(!ctx) return;
+    if (!ctx) return;
     chart = new Chart(ctx, {
         type: "doughnut",
-        data: { 
-            labels: ["Dùng","Trống","Hỏng"], 
-            datasets: [{ data: [u,f,b], backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"] }] 
+        data: {
+            labels: ["Dùng", "Trống", "Hỏng"],
+            datasets: [{ data: [u, f, b], backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"] }]
         },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
-// Tự động nhận diện nếu link có ?id=TB...
 function checkUrl() {
     let id = new URLSearchParams(window.location.search).get('id');
-    if (id && devices[id.toUpperCase()]) { 
-        currentDevice = id.toUpperCase(); 
-        showDevice(currentDevice); 
+    if (id && devices[id.toUpperCase()]) {
+        currentDevice = id.toUpperCase();
+        showDevice(currentDevice);
     }
 }
 
 // Cập nhật đồng hồ nhảy giây
-setInterval(() => { 
-    if (currentDevice && devices[currentDevice].start) showDevice(currentDevice); 
+setInterval(() => {
+    if (currentDevice && devices[currentDevice].start) showDevice(currentDevice);
 }, 1000);
 
-checkUrl(); 
-updateChart();
+checkUrl();
