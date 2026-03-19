@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Admin - QR Lab</title>
+
+<style>
+body{
+  margin:0;
+  font-family:-apple-system;
+  background:linear-gradient(135deg,#4a6cf7,#7b9cff);
+  color:white;
+}
+
+.header{
+  padding:20px;
+  text-align:center;
+}
+
+.container{
+  max-width:900px;
+  margin:auto;
+}
+
+.card{
+  background:white;
+  color:black;
+  margin:15px;
+  padding:20px;
+  border-radius:20px;
+}
+
+.device{
+  padding:10px;
+  border-bottom:1px solid #ddd;
+}
+
+button{
+  padding:8px 12px;
+  border:none;
+  border-radius:10px;
+  margin:5px;
+  cursor:pointer;
+}
+
+.fix{background:#2ecc71;color:white;}
+.delete{background:#e74c3c;color:white;}
+.reset{background:#f39c12;color:white;}
+.logout{background:#333;color:white;}
+
+.badge{
+  padding:4px 8px;
+  border-radius:8px;
+  color:white;
+  font-size:12px;
+}
+
+.free{background:#2ecc71;}
+.using{background:#f1c40f;}
+.broken{background:#e74c3c;}
+</style>
+
+</head>
+
+<body>
+
+<div class="header">
+<h2>👨‍💼 Admin Dashboard</h2>
+</div>
+
+<div class="container">
+
+<div class="card">
+  <h3>📋 Danh sách thiết bị</h3>
+  <div id="list"></div>
+</div>
+
+<div class="card">
+  <h3>⚙️ Quản lý</h3>
+  <button class="reset" onclick="resetAll()">Reset tất cả</button>
+  <button class="logout" onclick="logout()">Đăng xuất</button>
+</div>
+
+</div>
+
+<script>
+
+// 🔐 PHÂN QUYỀN
+let role = localStorage.getItem("role");
+
+if(role !== "admin"){
+  alert("❌ Không có quyền!");
+  window.location = "login.html";
+}
+
+// ===== LOAD DATA =====
+let devices = JSON.parse(localStorage.getItem("devices")) || {};
+
+// ===== FORMAT TIME =====
+function formatTime(ms){
+  let s = Math.floor(ms/1000);
+  let m = Math.floor(s/60);
+  s = s % 60;
+  return m + "p " + s + "s";
+}
+
+// ===== RENDER =====
+function render(){
+
+  let html = "";
+
+  Object.entries(devices).forEach(([id,d])=>{
+
+    let color="free";
+    if(d.status==="Đang sử dụng") color="using";
+    if(d.status==="Bị hỏng") color="broken";
+
+    html += `
+    <div class="device">
+      <b>${d.name}</b> (${id})<br>
+
+      <span class="badge ${color}">${d.status}</span><br>
+
+      👤 ${d.user || "Chưa có"}<br>
+      ⏱ ${formatTime(d.total || 0)}<br>
+
+      <button class="fix" onclick="fix('${id}')">✔ Sửa lỗi</button>
+      <button class="delete" onclick="removeDevice('${id}')">❌ Xóa</button>
+    </div>
+    `;
+  });
+
+  document.getElementById("list").innerHTML = html;
+}
+
+// ===== SAVE =====
+function save(){
+  localStorage.setItem("devices", JSON.stringify(devices));
+}
+
+// ===== SỬA LỖI =====
+function fix(id){
+  devices[id].status = "Trống";
+  devices[id].user = "";
+  devices[id].start = null;
+  save();
+  render();
+}
+
+// ===== XÓA =====
+function removeDevice(id){
+  if(confirm("Xóa thiết bị?")){
+    delete devices[id];
+    save();
+    render();
+  }
+}
+
+// ===== RESET =====
+function resetAll(){
+  if(confirm("Reset toàn bộ?")){
+    Object.keys(devices).forEach(id=>{
+      devices[id].status="Trống";
+      devices[id].user="";
+      devices[id].start=null;
+      devices[id].total=0;
+    });
+    save();
+    render();
+  }
+}
+
+// ===== LOGOUT =====
+function logout(){
+  localStorage.removeItem("role");
+  window.location = "login.html";
+}
+
+// INIT
+render();
+
+</script>
+
+</body>
+</html>
