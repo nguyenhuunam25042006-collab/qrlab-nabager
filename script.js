@@ -21,70 +21,10 @@ localStorage.setItem("devices", JSON.stringify(devices));
 }
 
 // ===== SCAN (FIX ĐƠ) =====
-async function startScan(){
+function startScan(){
 
 const reader = document.getElementById("reader");
 reader.innerHTML = "";
-
-// reset scanner cũ
-if(scanner){
-try{
-await scanner.stop();
-await scanner.clear();
-}catch(e){}
-scanner = null;
-}
-
-scanner = new Html5Qrcode("reader");
-
-try{
-
-const cameras = await Html5Qrcode.getCameras();
-
-if(!cameras.length){
-alert("Không có camera");
-return;
-}
-
-const cam = cameras[cameras.length - 1].id;
-
-await scanner.start(
-cam,
-{fps:10, qrbox:250},
-
-async (text)=>{
-
-// stop ngay khi quét
-try{
-await scanner.stop();
-await scanner.clear();
-}catch(e){}
-
-scanner = null;
-
-let id = text.trim();
-
-if(id.includes("http")){
-id = id.split("/").pop();
-}
-
-currentDevice = id.toUpperCase();
-
-navigator.vibrate && navigator.vibrate(200);
-
-setTimeout(()=>{
-showDevice(currentDevice);
-updateChart();
-},150);
-
-}
-
-);
-
-}catch(err){
-alert("Lỗi camera");
-}
-}
 
 // stop scanner cũ
 if(scanner){
@@ -115,14 +55,9 @@ scanner.stop().then(()=>{
 
 let id = text.trim();
 
-let id = text.trim();
-
-// nếu là link → map sang thiết bị
-if(id.includes("479mv3qs")) id = "TB001";
-if(id.includes("abc123")) id = "TB002";
-if(id.includes("xyz456")) id = "TB003";
-
-id = id.toUpperCase();
+if(id.includes("http")){
+id = id.split("/").pop();
+}
 
 currentDevice = id.toUpperCase();
 
