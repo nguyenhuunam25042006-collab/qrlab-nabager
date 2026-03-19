@@ -21,10 +21,76 @@ localStorage.setItem("devices", JSON.stringify(devices));
 }
 
 // ===== SCAN (FIX ĐƠ) =====
-function startScan(){
+async function startScan(){
 
 const reader = document.getElementById("reader");
+
+// reset UI
 reader.innerHTML = "";
+
+// nếu scanner cũ tồn tại → xoá sạch
+if(scanner){
+try{
+await scanner.stop();
+await scanner.clear();
+}catch(e){}
+scanner = null;
+}
+
+// tạo scanner mới hoàn toàn
+scanner = new Html5Qrcode("reader");
+
+try{
+
+const cameras = await Html5Qrcode.getCameras();
+
+if(!cameras.length){
+alert("Không có camera");
+return;
+}
+
+const cam = cameras[cameras.length - 1].id;
+
+await scanner.start(
+cam,
+{fps:10, qrbox:250},
+
+async (text)=>{
+
+// 👉 STOP NGAY KHI QUÉT
+try{
+await scanner.stop();
+await scanner.clear();
+}catch(e){}
+
+scanner = null;
+
+// xử lý dữ liệu
+let id = text.trim();
+
+if(id.includes("http")){
+id = id.split("/").pop();
+}
+
+currentDevice = id.toUpperCase();
+
+// rung
+navigator.vibrate && navigator.vibrate(200);
+
+// delay cho mượt
+setTimeout(()=>{
+showDevice(currentDevice);
+updateChart();
+},150);
+
+}
+
+);
+
+}catch(err){
+alert("Lỗi camera");
+}
+}
 
 // stop scanner cũ
 if(scanner){
