@@ -1,57 +1,48 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Lab Pro Max</title>
-
-<!-- QR -->
 <script src="https://unpkg.com/html5-qrcode"></script>
-
-<!-- Chart -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-
-<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<header>📱 QR Lab Pro Max</header>
+<h2>TEST QR</h2>
 
-<div class="container">
+<button onclick="start()">Quét</button>
+<div id="reader" style="width:300px"></div>
 
-<div class="card">
+<script>
+let scanner;
 
-<input id="username" placeholder="Nhập tên người dùng">
+async function start(){
 
-<button class="scanBtn" onclick="startScan()">📷 Quét QR</button>
-<div id="reader"></div>
+  if(scanner){
+    await scanner.stop();
+  }
 
-<div id="result" class="resultBox">Chưa chọn thiết bị</div>
+  scanner = new Html5Qrcode("reader");
 
-<button class="useBtn" onclick="startUse()">📅 Bắt đầu</button>
-<button class="stopBtn" onclick="stopUse()">⏹ Kết thúc</button>
-<button class="reportBtn" onclick="reportError()">⚠ Báo lỗi</button>
+  try{
+    await navigator.mediaDevices.getUserMedia({ video:true });
 
-</div>
+    const cams = await Html5Qrcode.getCameras();
 
-<div class="card">
-<h3>📊 Trạng thái thiết bị</h3>
-<canvas id="chart"></canvas>
-</div>
+    await scanner.start(
+      cams[0].id,
+      { fps: 10, qrbox: 250 },
+      (text)=>{
+        alert("Quét được: " + text);
+        scanner.stop();
+      }
+    );
 
-<div class="card">
-<h3>📜 Lịch sử</h3>
-<div id="history"></div>
-</div>
-
-</div>
-
-<script src="script.js"></script>
+  }catch(e){
+    alert("Lỗi camera");
+    console.log(e);
+  }
+}
+</script>
 
 </body>
 </html>
