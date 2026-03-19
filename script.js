@@ -1,4 +1,4 @@
-// ===== 0. CẤU HÌNH FIREBASE CỦA NAM =====
+// ===== 0. CẤU HÌNH FIREBASE CỦA NAM (DÙNG CHO TRÌNH DUYỆT) =====
 const firebaseConfig = {
     apiKey: "AIzaSyADJ5ugzW6ttbiUymfEkjBCJ-6Cd5UaCNc",
     authDomain: "qrlab-c1704.firebaseapp.com",
@@ -9,7 +9,7 @@ const firebaseConfig = {
     appId: "1:307225910652:web:364021a27bd2798ba618f9"
 };
 
-// Khởi tạo Firebase
+// Khởi tạo Firebase đúng kiểu dành cho script ngoài
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -19,7 +19,7 @@ let scanner = null;
 let currentDevice = "";
 let chart = null;
 
-// ===== 1. DỮ LIỆU THIẾT BỊ (ĐỒNG BỘ TỪ CLOUD) =====
+// ===== 1. DỮ LIỆU 10 THIẾT BỊ (ĐỒNG BỘ TỪ CLOUD) =====
 let devices = {}; 
 
 // Lắng nghe dữ liệu từ Firebase thay vì localStorage
@@ -42,7 +42,7 @@ function formatTime(ms) {
     return Math.floor(s/60) + "p " + (s % 60) + "s"; 
 }
 
-// ===== 2. HÀM QUÉT QR (GIỮ NGUYÊN LOGIC CỦA BẠN) =====
+// ===== 2. HÀM QUÉT QR (GIỮ NGUYÊN 100% LOGIC CỦA NAM) =====
 function startScan() {
     if(typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
     const reader = document.getElementById("reader");
@@ -58,6 +58,7 @@ function startScan() {
                 let rawText = text.trim();
                 let foundId = "";
 
+                // Bước 1: Thử bóc tách ID từ Link hoặc nội dung QR
                 if (rawText.includes("id=")) {
                     foundId = rawText.split("id=").pop().split("&")[0].toUpperCase();
                 } else {
@@ -65,14 +66,19 @@ function startScan() {
                     foundId = match ? match[0].toUpperCase() : rawText.toUpperCase();
                 }
 
+                // Bước 2: NẾU QUÉT RA LINK LẠ (Như link rút gọn Me-QR)
                 if (!devices[foundId]) {
-                    let manualId = prompt("❌ Không nhận diện được máy!\nNhập ID thủ công (Ví dụ: TB001):");
-                    if (manualId) foundId = manualId.toUpperCase().trim();
+                    console.log("Dữ liệu QR lạ:", rawText);
+                    let manualId = prompt("❌ Không nhận diện được máy!\nVui lòng nhập ID thủ công (Ví dụ: TB001):");
+                    if (manualId) {
+                        foundId = manualId.toUpperCase().trim();
+                    }
                 }
 
+                // Bước 3: Kiểm tra và hiển thị
                 if (devices[foundId]) {
                     currentDevice = foundId;
-                    if (navigator.vibrate) navigator.vibrate(200);
+                    if (navigator.vibrate) navigator.vibrate(200); // Rung khi quét trúng
                     showDevice(currentDevice);
                     updateChart();
                 } else if (foundId !== "") {
@@ -114,7 +120,7 @@ function useDevice() {
     d.status = "Đang sử dụng"; 
     d.user = name; 
     d.start = Date.now();
-    save(); 
+    save(); // Lưu lên Cloud ngay
 }
 
 function stopDevice() {
@@ -122,7 +128,7 @@ function stopDevice() {
     let d = devices[currentDevice];
     if(d.start) {
         let used = Date.now() - d.start;
-        // Đẩy lịch sử lên Firebase
+        // Đẩy lịch sử lên Firebase Cloud
         db.ref('history').push({ 
             device: d.name, 
             user: d.user, 
@@ -163,6 +169,7 @@ function updateChart() {
     });
 }
 
+// Tự động nhận diện nếu link có ?id=TB...
 function checkUrl() {
     let id = new URLSearchParams(window.location.search).get('id');
     if (id) { 
@@ -174,6 +181,7 @@ function checkUrl() {
     }
 }
 
+// Cập nhật đồng hồ nhảy giây
 setInterval(() => { 
     if (currentDevice && devices[currentDevice] && devices[currentDevice].start) showDevice(currentDevice); 
 }, 1000);
