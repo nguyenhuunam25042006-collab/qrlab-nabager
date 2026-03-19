@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Login</title>
+<title>QR Lab Login</title>
 
 <style>
 body{
@@ -19,7 +19,7 @@ body{
   background:white;
   padding:30px;
   border-radius:20px;
-  width:300px;
+  width:320px;
   text-align:center;
   box-shadow:0 10px 30px rgba(0,0,0,0.2);
 }
@@ -44,6 +44,10 @@ button{
   cursor:pointer;
 }
 
+button:hover{
+  opacity:0.9;
+}
+
 h2{margin-bottom:20px;}
 </style>
 </head>
@@ -60,18 +64,33 @@ h2{margin-bottom:20px;}
 </div>
 
 <script>
-function login(){
-  let u = user.value;
-  let p = pass.value;
 
-  if(u==="admin" && p==="123"){
+// 🔥 RESET ROLE (tránh lỗi cache)
+localStorage.removeItem("role");
+
+function login(){
+
+  let u = document.getElementById("user").value.trim();
+  let p = document.getElementById("pass").value.trim();
+
+  // ✅ ADMIN
+  if(u === "admin" && p === "123"){
     localStorage.setItem("role","admin");
-    location="admin.html";
-  }else{
-    localStorage.setItem("role","user");
-    location="index.html";
+    window.location.href = "./admin.html";
+    return;
   }
+
+  // ✅ USER (nếu bạn muốn cho vào user)
+  if(u !== "" && p !== ""){
+    localStorage.setItem("role","user");
+    window.location.href = "./index.html";
+    return;
+  }
+
+  // ❌ FAIL
+  alert("❌ Nhập đầy đủ thông tin!");
 }
+
 </script>
 
 </body>
