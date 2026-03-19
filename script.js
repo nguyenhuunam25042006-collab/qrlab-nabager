@@ -1,175 +1,154 @@
-let scanner;
-let currentDevice = null;
+let scanner = null;
+let currentDevice = "";
 
 // ===== DATA =====
 let devices = JSON.parse(localStorage.getItem("devices")) || {
-
-TB001:{name:"Tủ sấy",status:"Trống"},
-TB002:{name:"Hằn lún bánh xe",status:"Trống"},
-TB003:{name:"Marshall",status:"Trống"},
-TB004:{name:"Đầm BTN",status:"Trống"},
-TB005:{name:"Parafin",status:"Trống"},
-TB006:{name:"Kéo dài nhựa",status:"Trống"},
-TB007:{name:"Brookfield",status:"Trống"},
-TB008:{name:"Tổn thất nhựa",status:"Trống"},
-TB009:{name:"Cắt bê tông",status:"Trống"},
-TB010:{name:"Bảo dưỡng bê tông",status:"Trống"}
-
+"TB001": {name:"Tủ sấy", status:"Trống"},
+"TB002": {name:"Hằn lún bánh xe", status:"Trống"},
+"TB003": {name:"Marshall", status:"Trống"},
+"TB004": {name:"Đầm BTN", status:"Trống"},
+"TB005": {name:"Parafin", status:"Trống"},
+"TB006": {name:"Kéo dài nhựa", status:"Trống"},
+"TB007": {name:"Brookfield", status:"Trống"},
+"TB008": {name:"Tổn thất nhựa", status:"Trống"},
+"TB009": {name:"Cắt bê tông", status:"Trống"},
+"TB010": {name:"Bảo dưỡng bê tông", status:"Trống"}
 };
 
 // ===== SAVE =====
 function save(){
-localStorage.setItem("devices",JSON.stringify(devices));
+localStorage.setItem("devices", JSON.stringify(devices));
 }
 
-// ===== FORMAT TIME =====
-function format(ms){
-let s=Math.floor(ms/1000);
-let m=Math.floor(s/60);
-s=s%60;
-return m+" phút "+s+" giây";
-}
-
-// ===== SCAN =====
+// ===== SCAN (FIX ĐƠ) =====
 function startScan(){
 
-let reader=document.getElementById("reader");
-reader.innerHTML="";
+const reader = document.getElementById("reader");
+reader.innerHTML = "";
 
+// stop scanner cũ
 if(scanner){
-scanner.stop().then(()=>scanner.clear()).catch(()=>{});
+scanner.stop().then(()=>{
+scanner.clear();
+}).catch(()=>{});
 }
 
-scanner=new Html5Qrcode("reader");
+scanner = new Html5Qrcode("reader");
 
 Html5Qrcode.getCameras().then(cameras=>{
 
-let cam=cameras[cameras.length-1].id;
-
-scanner.start(cam,{fps:10,qrbox:250},(text)=>{
-
-scanner.stop().then(()=>scanner.clear());
-reader.innerHTML="";
-
-// ===== FIX LINK =====
-let id=text.trim();
-
-if(id.includes("http")){
-let match=id.match(/TB\d+/);
-if(match) id=match[0];
-}
-
-id=id.toUpperCase();
-
-handleScan(id);
-
-});
-
-});
-}
-
-// ===== HANDLE =====
-function handleScan(id){
-
-if(!devices[id]){
-alert("❌ Không tìm thấy: "+id);
+if(!cameras.length){
+alert("Không có camera");
 return;
 }
 
-currentDevice=id;
-show();
+let cam = cameras[cameras.length - 1].id;
+
+scanner.start(
+cam,
+{fps:10, qrbox:250},
+
+(text)=>{
+
+// 👉 DỪNG TRƯỚC
+scanner.stop().then(()=>{
+
+let id = text.trim();
+
+if(id.includes("http")){
+id = id.split("/").pop();
+}
+
+currentDevice = id.toUpperCase();
+
+navigator.vibrate && navigator.vibrate(200);
+
+// delay tránh đơ
+setTimeout(()=>{
+showDevice(currentDevice);
+updateChart();
+},200);
+
+}).catch(()=>{});
+
+},
+(err)=>{}
+);
+
+}).catch(()=>{
+alert("Không mở được camera");
+});
 
 }
 
 // ===== SHOW =====
-function show(){
+function showDevice(id){
 
-let d=devices[currentDevice];
+document.getElementById("reader").innerHTML = "";
 
-let cls="free";
-if(d.status=="Đang sử dụng") cls="using";
-if(d.status=="Hỏng") cls="broken";
+let d = devices[id];
 
-let timeText="";
-
-if(d.startTime){
-timeText="⏱ "+format(Date.now()-d.startTime);
-}else if(d.totalTime){
-timeText="🕒 Tổng: "+format(d.totalTime);
-}
-
-document.getElementById("result").innerHTML=`
-<h3>${d.name}</h3>
-<p>Mã: ${currentDevice}</p>
-
-<div class="status ${cls}">
-${d.status}
-</div>
-
-<p>👤 ${d.user || "Chưa có người dùng"}</p>
-<p>⏰ Bắt đầu: ${d.start || "-"}</p>
-<p>⏱ Kết thúc: ${d.end || "-"}</p>
-<p>${timeText}</p>
-`;
-}
-
-// ===== START =====
-function startUse(){
-
-if(!currentDevice){
-alert("Quét thiết bị trước");
+if(!d){
+result.innerHTML="❌ Không tìm thấy thiết bị";
 return;
 }
 
-let name=prompt("Nhập tên:");
-if(!name) return;
+let color="free";
+if(d.status==="Đang sử dụng") color="using";
+if(d.status==="Bị hỏng") color="broken";
 
-let d=devices[currentDevice];
-
-d.status="Đang sử dụng";
-d.user=name;
-d.start=new Date().toLocaleString();
-d.startTime=Date.now();
-d.end="";
-
-save();
-show();
+result.innerHTML=`
+<div class="result">
+<h3>${d.name}</h3>
+<p>${id}</p>
+<span class="badge ${color}">${d.status}</span>
+</div>
+`;
 }
 
-// ===== STOP =====
-function stopUse(){
+// ===== USE =====
+function useDevice(){
+if(!currentDevice) return alert("Quét trước");
 
-if(!currentDevice) return;
-
-let d=devices[currentDevice];
-
-if(d.startTime){
-let used=Date.now()-d.startTime;
-d.totalTime=(d.totalTime||0)+used;
-}
-
-d.status="Trống";
-d.end=new Date().toLocaleString();
-d.startTime=null;
-
+devices[currentDevice].status="Đang sử dụng";
 save();
-show();
+showDevice(currentDevice);
+updateChart();
 }
 
 // ===== ERROR =====
-function reportError(){
+function errorDevice(){
+if(!currentDevice) return alert("Quét trước");
 
-if(!currentDevice) return;
-
-devices[currentDevice].status="Hỏng";
-
+devices[currentDevice].status="Bị hỏng";
 save();
-show();
+showDevice(currentDevice);
+updateChart();
 }
 
-// ===== AUTO UPDATE TIME =====
-setInterval(()=>{
-  if(currentDevice){
-show();
+// ===== CHART =====
+let chart;
+
+function updateChart(){
+
+let u=0,f=0,b=0;
+
+Object.values(devices).forEach(d=>{
+if(d.status==="Đang sử dụng") u++;
+else if(d.status==="Bị hỏng") b++;
+else f++;
+});
+
+if(chart) chart.destroy();
+
+chart=new Chart(document.getElementById("chart"),{
+type:"doughnut",
+data:{
+labels:["Đang dùng","Trống","Hỏng"],
+datasets:[{data:[u,f,b]}]
 }
-},1000);
+});
+}
+
+// INIT
+updateChart();
