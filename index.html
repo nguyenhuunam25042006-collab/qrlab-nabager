@@ -1,48 +1,87 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QR Lab Pro Max</title>
+
 <script src="https://unpkg.com/html5-qrcode"></script>
+
+<style>
+body{
+margin:0;
+font-family:-apple-system;
+background:linear-gradient(135deg,#4a6cf7,#7b9cff);
+color:white;
+}
+
+.container{
+max-width:420px;
+margin:auto;
+padding:20px;
+}
+
+.card{
+background:white;
+color:black;
+border-radius:20px;
+padding:20px;
+margin-top:20px;
+box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+button{
+width:100%;
+padding:15px;
+margin-top:10px;
+border:none;
+border-radius:12px;
+font-size:16px;
+font-weight:bold;
+}
+
+.scan{background:#4a6cf7;color:white;}
+.use{background:#2ecc71;color:white;}
+.stop{background:#f1c40f;color:white;}
+.error{background:#e74c3c;color:white;}
+
+.status{
+padding:5px 10px;
+border-radius:10px;
+display:inline-block;
+margin-top:10px;
+color:white;
+}
+
+.free{background:#2ecc71;}
+.using{background:#f1c40f;}
+.broken{background:#e74c3c;}
+</style>
 </head>
 
 <body>
 
-<h2>TEST QR</h2>
+<div class="container">
 
-<button onclick="start()">Quét</button>
-<div id="reader" style="width:300px"></div>
+<h2 style="text-align:center;">🔬 QR Lab Pro Max</h2>
 
-<script>
-let scanner;
+<div class="card">
 
-async function start(){
+<button class="scan" onclick="startScan()">📷 Quét QR</button>
 
-  if(scanner){
-    await scanner.stop();
-  }
+<div id="reader"></div>
 
-  scanner = new Html5Qrcode("reader");
+<div id="result"></div>
 
-  try{
-    await navigator.mediaDevices.getUserMedia({ video:true });
+<button class="use" onclick="startUse()">📅 Sử dụng</button>
+<button class="stop" onclick="stopUse()">⏹ Kết thúc</button>
+<button class="error" onclick="reportError()">⚠ Báo lỗi</button>
 
-    const cams = await Html5Qrcode.getCameras();
+</div>
 
-    await scanner.start(
-      cams[0].id,
-      { fps: 10, qrbox: 250 },
-      (text)=>{
-        alert("Quét được: " + text);
-        scanner.stop();
-      }
-    );
+</div>
 
-  }catch(e){
-    alert("Lỗi camera");
-    console.log(e);
-  }
-}
-</script>
+<script src="script.js"></script>
 
 </body>
 </html>
