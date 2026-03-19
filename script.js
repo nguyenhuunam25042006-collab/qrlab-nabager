@@ -55,9 +55,12 @@ scanner.stop().then(()=>{
 
 let id = text.trim();
 
-if(id.includes("http")){
-id = id.split("/").pop();
-}
+// nếu là link → map sang thiết bị
+if(id.includes("479mv3qs")) id = "TB001";
+if(id.includes("abc123")) id = "TB002";
+if(id.includes("xyz456")) id = "TB003";
+
+id = id.toUpperCase();
 
 currentDevice = id.toUpperCase();
 
