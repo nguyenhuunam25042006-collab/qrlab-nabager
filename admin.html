@@ -69,6 +69,7 @@
     <script>
         if(localStorage.getItem("role") !== "admin") location.href = "./login.html";
 
+        // Khởi tạo dữ liệu
         let devices = JSON.parse(localStorage.getItem("devices")) || {
             "TB001": { name: "Tủ sấy", status: "Trống", user: "", total: 0 },
             "TB002": { name: "Thiết bị thí nghiệm hằn lún vết bánh xe", status: "Trống", user: "", total: 0 },
@@ -95,7 +96,7 @@
                     <div class="device-info">
                         <b>${d.name}</b> (${id})<br>
                         <span class="badge ${color}">${d.status}</span><br>
-                        <small>ND: ${d.user || "Trống"} | Tổng: ${formatTime(d.total)}</small><br>
+                        <small>ND: <b>${d.user || "Trống"}</b> | Tổng: ${formatTime(d.total)}</small><br>
                         <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
                     </div>
                     <div class="device-media">
@@ -120,28 +121,74 @@
             document.getElementById("qrModal").style.display = "flex";
         }
 
-        // HÀM ĐÓNG MODAL
         function closeQR() {
             document.getElementById("qrModal").style.display = "none";
         }
 
         function renderHistory() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            document.getElementById("history-list").innerHTML = history.slice(-10).reverse().map(h => 
-                `<div style="font-size:13px; border-bottom:1px solid #eee; padding:8px 0;"><b>${h.device}</b> - ${h.user}<br><small>⏱ ${h.duration} | 📅 ${h.time}</small></div>`
-            ).join("") || "Chưa có dữ liệu.";
+            let historyDiv = document.getElementById("history-list");
+            if (!historyDiv) return;
+
+            if (history.length === 0) {
+                historyDiv.innerHTML = "Chưa có dữ liệu lịch sử.";
+                return;
+            }
+
+            historyDiv.innerHTML = history.slice(-10).reverse().map(h => 
+                `<div style="font-size:13px; border-bottom:1px solid #eee; padding:8px 0; color:#333;">
+                    <b style="color:#4a6cf7;">${h.device}</b> - 👤 ${h.user}<br>
+                    <small>⏱ Dùng: ${h.duration} | 📅 ${h.time}</small>
+                </div>`
+            ).join("");
         }
 
-        function save() { localStorage.setItem("devices", JSON.stringify(devices)); render(); renderHistory(); }
-        function fix(id) { devices[id].status = "Trống"; devices[id].user = ""; devices[id].start = null; save(); }
-        function resetAll() { if(confirm("Reset tất cả?")) { Object.keys(devices).forEach(id => { devices[id].status="Trống"; devices[id].total=0; }); localStorage.removeItem("history"); save(); } }
+        function save() { 
+            localStorage.setItem("devices", JSON.stringify(devices)); 
+            render(); 
+            renderHistory(); 
+        }
+        
+        function fix(id) { 
+            devices[id].status = "Trống"; 
+            devices[id].user = ""; 
+            devices[id].start = null; 
+            save(); 
+        }
+        
+        function resetAll() { 
+            if(confirm("Reset tất cả?")) { 
+                Object.keys(devices).forEach(id => { 
+                    devices[id].status="Trống"; 
+                    devices[id].user="";
+                    devices[id].total=0; 
+                }); 
+                localStorage.removeItem("history"); 
+                save(); 
+            } 
+        }
+
         function logout() { localStorage.removeItem("role"); location.href = "./login.html"; }
         
-        window.addEventListener("storage", () => { devices = JSON.parse(localStorage.getItem("devices")); render(); renderHistory(); });
+        // Lắng nghe thay đổi từ trang User (Điện thoại)
+        window.addEventListener("storage", (e) => { 
+            if (e.key === "devices" || e.key === "history") {
+                devices = JSON.parse(localStorage.getItem("devices")); 
+                render(); 
+                renderHistory(); 
+            }
+        });
         
+        // Khởi chạy
         render(); 
         renderHistory();
-        setInterval(renderHistory, 2000); 
+        
+        // Cập nhật lại lịch sử và danh sách mỗi 2 giây để hiện người dùng mới nhất
+        setInterval(() => {
+            devices = JSON.parse(localStorage.getItem("devices"));
+            render();
+            renderHistory();
+        }, 2000); 
     </script>
 </body>
 </html>
