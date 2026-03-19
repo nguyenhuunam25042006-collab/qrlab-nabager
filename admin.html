@@ -3,31 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - QR Lab Pro</title>
+    <title>Admin Dashboard - QR Lab Pro</title>
     <style>
-        body { margin:0; font-family:-apple-system; background:linear-gradient(135deg,#4a6cf7,#7b9cff); color:white; }
-        .header { padding:20px; text-align:center; font-size:22px; font-weight:bold; }
+    
+        body { margin:0; font-family:-apple-system, sans-serif; background:linear-gradient(135deg,#4a6cf7,#7b9cff); color:white; min-height:100vh; }
+        .header { padding:25px; text-align:center; font-size:24px; font-weight:bold; }
         .container { max-width:900px; margin:auto; padding-bottom: 50px; }
         .card { background:white; color:black; margin:15px; padding:20px; border-radius:20px; box-shadow:0 10px 25px rgba(0,0,0,0.2); }
-        
-        /* Bố cục thiết bị */
-        .device { display: flex; justify-content: space-between; align-items: center; padding:15px; border-bottom:1px solid #eee; gap: 15px; }
+        .card h3 { margin-top:0; color:#4a6cf7; border-bottom:1px solid #eee; padding-bottom:10px; }
+        .device { display: flex; justify-content: space-between; align-items: center; padding:15px; border-bottom:1px solid #f0f0f0; gap: 15px; }
         .device-info { flex: 1; }
         .device-media { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 120px; }
-        
-        /* Ảnh và QR */
-        .device-img { width: 100px; height: 100px; object-fit: cover; border-radius: 10px; border: 2px solid #ddd; }
-        .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; }
-        .device-qr canvas, .device-qr img { max-width: 100%; height: auto; }
-
-        input { width:100%; padding:12px; margin:10px 0; border-radius:12px; border:1px solid #ddd; background:#f1f5f9; box-sizing: border-box; }
-        button { padding:8px 12px; border:none; border-radius:10px; margin:5px 0; cursor:pointer; font-weight: bold; }
+        .device-img { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid #ddd; background:#eee; }
+        .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; border-radius: 8px; }
+        input { width:100%; padding:12px; margin:10px 0; border-radius:12px; border:1px solid #ddd; background:#f8fafc; box-sizing: border-box; }
+        button { padding:10px 15px; border:none; border-radius:10px; margin:5px 0; cursor:pointer; font-weight: bold; }
         .fix { background:#2ecc71; color:white; width: 100%; }
-        .delete { background:#e74c3c; color:white; width: 100%; }
-        .reset { background:#f39c12; color:white; }
-        .logout { background:#333; color:white; }
-
-        .badge { padding:4px 8px; border-radius:8px; color:white; font-size:12px; font-weight: bold; display: inline-block; margin: 5px 0; }
+        .reset { background:#f39c12; color:white; padding: 12px 20px; }
+        .logout { background:#333; color:white; padding: 12px 20px; }
+        .badge { padding:5px 10px; border-radius:10px; color:white; font-size:12px; font-weight: bold; display: inline-block; }
         .free { background:#2ecc71; }
         .using { background:#f1c40f; color: black; }
         .broken { background:#e74c3c; }
@@ -35,122 +29,29 @@
 </head>
 <body>
 
-<div class="header">👨‍💼 ADMIN DASHBOARD</div>
+<div class="header">👨‍💼 HỆ THỐNG QUẢN TRỊ QR LAB</div>
 
 <div class="container">
     <div class="card">
         <h3>📅 Lịch sử sử dụng</h3>
-        <div id="history">Chưa có dữ liệu</div>
+        <div id="history-list">Đang tải...</div>
     </div>
 
     <div class="card">
-        <h3>📋 Danh sách thiết bị</h3>
-        <input id="search" placeholder="🔍 Tìm thiết bị..." oninput="render()">
+        <h3>📋 Danh sách 10 thiết bị</h3>
+        <input id="search" placeholder="🔍 Tìm nhanh thiết bị..." oninput="render()">
         <div id="list"></div>
     </div>
 
-    <div class="card">
-        <h3>⚙️ Quản lý</h3>
-        <button class="reset" onclick="resetAll()">Reset tất cả</button>
-        <button class="logout" onclick="logout()">Đăng xuất</button>
+    <div class="card" style="text-align: center;">
+        <button class="reset" onclick="resetAll()">🔄 Reset tất cả</button>
+        <button class="logout" onclick="logout()">🚪 Đăng xuất</button>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 
-<script>
-// Kiểm tra quyền
-if(localStorage.getItem("role") !== "admin") {
-    alert("❌ Không có quyền!");
-    location.href = "./login.html";
-}
+<script src="admin_script.js"></script>
 
-// Khởi tạo 10 thiết bị nếu chưa có
-if (!localStorage.getItem("devices")) {
-    const initData = {
-        "TB001": { name: "Tủ sấy", status: "Trống" },
-        "TB002": { name: "Thiết bị thí nghiệm hằn lún vết bánh xe", status: "Trống" },
-        "TB003": { name: "Thiết bị thí nghiệm Marshall tự động", status: "Trống" },
-        "TB004": { name: "Thiết bị đầm bê tông nhựa", status: "Trống" },
-        "TB005": { name: "Thiết bị xác định hàm lượng parafin trong nhựa", status: "Trống" },
-        "TB006": { name: "Thiết bị xác định độ kéo dài của nhựa", status: "Trống" },
-        "TB007": { name: "Thiết bị xác định độ nhớt Brookfield", status: "Trống" },
-        "TB008": { name: "Thiết bị xác định độ tổn thất khối lượng của nhựa đường", status: "Trống" },
-        "TB009": { name: "Máy cắt mẫu bê tông xi măng", status: "Trống" },
-        "TB010": { name: "Thiết bị bảo dưỡng mẫu bê tông xi măng", status: "Trống" }
-    };
-    localStorage.setItem("devices", JSON.stringify(initData));
-}
-
-let devices = JSON.parse(localStorage.getItem("devices"));
-
-function formatTime(ms) {
-    if(!ms) return "0p 0s";
-    let s = Math.floor(ms/1000);
-    let m = Math.floor(s/60);
-    return m + "p " + (s % 60) + "s";
-}
-
-function render() {
-    let keyword = document.getElementById("search").value.toLowerCase();
-    let listDiv = document.getElementById("list");
-    listDiv.innerHTML = "";
-
-    Object.entries(devices).forEach(([id, d]) => {
-        if (!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)) return;
-
-        let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
-
-        // Tạo HTML cho từng thiết bị
-        let devEl = document.createElement("div");
-        devEl.className = "device";
-        devEl.innerHTML = `
-            <div class="device-info">
-                <b>${d.name}</b> (${id})<br>
-                <span class="badge ${color}">${d.status}</span><br>
-                👤 ${d.user || "Chưa có"}<br>
-                ⏱ ${formatTime(d.total || 0)}<br>
-                <button class="fix" onclick="fix('${id}')">✔ Sửa</button>
-                <button class="delete" onclick="removeDevice('${id}')">❌ Xóa</button>
-            </div>
-            <div class="device-media">
-                <img src="images/${id}.jpg" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Image'">
-                <div id="qr-${id}" class="device-qr"></div>
-            </div>
-        `;
-        listDiv.appendChild(devEl);
-
-        // Tạo mã QR (Thay URL GitHub của bạn vào đây)
-        let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
-        new QRCode(document.getElementById(`qr-${id}`), { text: qrUrl, width: 100, height: 100 });
-    });
-}
-
-function renderHistory() {
-    let history = JSON.parse(localStorage.getItem("history")) || [];
-    let html = history.slice(-5).reverse().map(h => `
-        <div style="font-size:13px; border-bottom:1px solid #eee; padding:5px 0;">
-            <b>${h.device}</b> - ${h.user}<br>⏱ ${h.duration} (${h.time})
-        </div>
-    `).join("") || "Chưa có dữ liệu";
-    document.getElementById("history").innerHTML = html;
-}
-
-function save() { localStorage.setItem("devices", JSON.stringify(devices)); render(); }
-
-function fix(id) { devices[id].status="Trống"; devices[id].user=""; devices[id].start=null; save(); }
-
-function removeDevice(id) { if(confirm("Xóa?")) { delete devices[id]; save(); } }
-
-function resetAll() { if(confirm("Reset tất cả?")) { Object.keys(devices).forEach(id => { devices[id].status="Trống"; devices[id].total=0; }); save(); } }
-
-function logout() { localStorage.removeItem("role"); location.href = "./login.html"; }
-
-// Lắng nghe thay đổi từ trang User
-window.addEventListener("storage", () => { devices = JSON.parse(localStorage.getItem("devices")); render(); renderHistory(); });
-
-render();
-renderHistory();
-</script>
 </body>
 </html>
