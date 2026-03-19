@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Admin - QR Lab</title>
+<title>Admin - QR Lab Pro</title>
 
 <style>
 body{
@@ -15,6 +15,8 @@ body{
 .header{
   padding:20px;
   text-align:center;
+  font-size:22px;
+  font-weight:bold;
 }
 
 .container{
@@ -28,6 +30,7 @@ body{
   margin:15px;
   padding:20px;
   border-radius:20px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.2);
 }
 
 .device{
@@ -37,9 +40,9 @@ body{
 
 input{
   width:100%;
-  padding:10px;
+  padding:12px;
   margin:10px 0;
-  border-radius:10px;
+  border-radius:12px;
   border:none;
   background:#f1f5f9;
 }
@@ -58,8 +61,8 @@ button{
 .logout{background:#333;color:white;}
 
 .badge{
-  padding:4px 8px;
-  border-radius:8px;
+  padding:5px 10px;
+  border-radius:10px;
   color:white;
   font-size:12px;
 }
@@ -74,7 +77,7 @@ button{
 <body>
 
 <div class="header">
-<h2>👨‍💼 Admin Dashboard</h2>
+👨‍💼 ADMIN DASHBOARD
 </div>
 
 <div class="container">
@@ -105,10 +108,10 @@ button{
 
 <script>
 
-// 🔐 CHECK ROLE
+// 🔐 PHÂN QUYỀN
 if(localStorage.getItem("role") !== "admin"){
   alert("❌ Không có quyền!");
-  location="login.html";
+  location.href = "./login.html";
 }
 
 // ===== LOAD DATA =====
@@ -122,7 +125,7 @@ function formatTime(ms){
   return m + "p " + s + "s";
 }
 
-// ===== RENDER DEVICE + SEARCH =====
+// ===== RENDER DEVICE =====
 function render(){
 
   let keyword = document.getElementById("search").value.toLowerCase();
@@ -147,7 +150,7 @@ function render(){
       👤 ${d.user || "Chưa có"}<br>
       ⏱ ${formatTime(d.total || 0)}<br>
 
-      <button class="fix" onclick="fix('${id}')">✔ Sửa lỗi</button>
+      <button class="fix" onclick="fix('${id}')">✔ Sửa</button>
       <button class="delete" onclick="removeDevice('${id}')">❌ Xóa</button>
     </div>
     `;
@@ -184,9 +187,9 @@ function save(){
 
 // ===== FIX =====
 function fix(id){
-  devices[id].status = "Trống";
-  devices[id].user = "";
-  devices[id].start = null;
+  devices[id].status="Trống";
+  devices[id].user="";
+  devices[id].start=null;
   save();
 }
 
@@ -214,7 +217,7 @@ function resetAll(){
 // ===== LOGOUT =====
 function logout(){
   localStorage.removeItem("role");
-  location="login.html";
+  location.href = "./login.html";
 }
 
 // 🔥 REALTIME UPDATE
@@ -228,6 +231,10 @@ window.addEventListener("storage", ()=>{
 render();
 renderHistory();
 
+</script>
+
+</body>
+</html>
 </script>
 
 </body>
