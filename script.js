@@ -65,36 +65,29 @@ scanner.stop().then(()=>{
 scanner.clear();
 
 // ===== XỬ LÝ QR =====
-let id = text.trim();
+let decodedText = text.trim();
 
-if(id.includes("479mv3qs")) id = "TB001";
-if(id.includes("abc123")) id = "TB002";
-if(id.includes("xyz456")) id = "TB003";
-
-let match = id.match(/TB\d+/);
-if(match) id = match[0];
-
-id = id.toUpperCase();
-currentDevice = id;
-
-navigator.vibrate && navigator.vibrate(200);
-
-setTimeout(()=>{
-showDevice(currentDevice);
-updateChart();
-},200);
-
-}).catch(()=>{});
-
-},
-(err)=>{}
-);
-
-}).catch(()=>{
-alert("❌ Không mở được camera");
-});
-
+// 1. Nếu quét trúng link (từ Admin tạo), ta bóc tách lấy ID sau dấu "="
+if (decodedText.includes("id=")) {
+    currentDevice = decodedText.split("id=").pop().toUpperCase();
+} 
+// 2. Nếu quét mã QR cũ hoặc mã thủ công (chỉ có chữ TB...)
+else {
+    let match = decodedText.match(/TB\d+/i);
+    if(match) {
+        currentDevice = match[0].toUpperCase();
+    } else {
+        currentDevice = decodedText.toUpperCase();
+    }
 }
+
+// Rung một cái cho biết đã nhận diện xong
+if (navigator.vibrate) navigator.vibrate(200);
+
+setTimeout(() => {
+    showDevice(currentDevice);
+    updateChart();
+}, 200);
 
 // ===== SHOW =====
 function showDevice(id){
@@ -119,6 +112,17 @@ if(d.start){
 timeText = "⏱ " + formatTime(Date.now() - d.start);
 }else{
 timeText = "🕒 " + formatTime(d.total || 0);
+
+  document.getElementById("result").innerHTML=`
+        <div class="result" style="text-align:center;">
+            <img src="images/${id}.jpg" style="width:150px; border-radius:10px; margin-bottom:10px;" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+            <h3>${d.name}</h3>
+            <p>${id}</p>
+            <span class="badge ${color}">${d.status}</span>
+            <p>👤 ${d.user || "Chưa có"}</p>
+            <p style="font-size:1.2em; font-weight:bold;">${timeText}</p>
+        </div>
+    `;
 }
 
 document.getElementById("result").innerHTML=`
