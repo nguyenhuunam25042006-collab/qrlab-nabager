@@ -50,7 +50,10 @@ font-weight:bold;
 .use{background:#2ecc71;color:white;}
 .error{background:#e74c3c;color:white;}
 
-#reader{width:100%;margin-top:10px;}
+#reader{
+width:100%;
+margin-top:10px;
+}
 
 .result{
 padding:15px;
@@ -83,6 +86,7 @@ font-size:12px;
 <div class="container">
 
 <div class="card">
+
 <button class="scan" onclick="startScan()">📷 Quét QR</button>
 
 <div id="reader"></div>
@@ -91,6 +95,7 @@ font-size:12px;
 
 <button class="use" onclick="useDevice()">📅 Sử dụng</button>
 <button class="error" onclick="errorDevice()">⚠️ Báo lỗi</button>
+
 </div>
 
 <div class="card">
