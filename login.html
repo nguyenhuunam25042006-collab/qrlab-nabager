@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<style>
+body{
+  margin:0;
+  font-family:-apple-system;
+  height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:linear-gradient(135deg,#4a6cf7,#7b9cff);
+}
+
+.box{
+  background:white;
+  padding:30px;
+  border-radius:20px;
+  width:300px;
+  text-align:center;
+  box-shadow:0 10px 30px rgba(0,0,0,0.2);
+}
+
+input{
+  width:100%;
+  padding:12px;
+  margin:10px 0;
+  border-radius:10px;
+  border:none;
+  background:#f1f5f9;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#4a6cf7;
+  color:white;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+h2{margin-bottom:20px;}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+  <h2>🔐 QR Lab Login</h2>
+
+  <input id="user" placeholder="Username">
+  <input id="pass" type="password" placeholder="Password">
+
+  <button onclick="login()">Đăng nhập</button>
+</div>
+
+<script>
+function login(){
+  let u = user.value;
+  let p = pass.value;
+
+  if(u==="admin" && p==="123"){
+    localStorage.setItem("role","admin");
+    location="admin.html";
+  }else{
+    localStorage.setItem("role","user");
+    location="index.html";
+  }
+}
+</script>
+
+</body>
+</html>
