@@ -3,87 +3,89 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Lab Pro</title>
+
+<title>QR Lab Pro Max</title>
 
 <script src="https://unpkg.com/html5-qrcode"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 
 <style>
 body{
 margin:0;
-font-family:Arial;
-background:linear-gradient(135deg,#4facfe,#00c6ff);
-text-align:center;
-color:#333;
-}
-
-.header{
-padding:40px 20px;
+font-family:-apple-system;
+background:#0f172a;
 color:white;
 }
 
-.card{
-background:white;
-margin:20px;
+.container{
+max-width:420px;
+margin:auto;
 padding:20px;
+}
+
+.card{
+background:#1e293b;
 border-radius:20px;
-box-shadow:0 10px 30px rgba(0,0,0,0.2);
+padding:20px;
+margin-top:15px;
 }
 
 button{
 width:100%;
 padding:15px;
-margin:10px 0;
 border:none;
 border-radius:12px;
-font-size:16px;
-color:white;
-cursor:pointer;
-}
-
-.scan{background:#4e73df;}
-.use{background:#1cc88a;}
-.error{background:#e74a3b;}
-
-input{
-width:100%;
-padding:12px;
-border-radius:10px;
-border:1px solid #ccc;
 margin-top:10px;
+font-weight:bold;
 }
+
+.scan{background:#3b82f6;color:white;}
+.use{background:#22c55e;color:white;}
+.stop{background:#eab308;color:white;}
+.error{background:#ef4444;color:white;}
 
 .status{
 padding:5px 10px;
 border-radius:10px;
 display:inline-block;
-margin-top:5px;
+margin-top:10px;
 }
 
-.green{background:#1cc88a;color:white;}
-.yellow{background:#f6c23e;color:white;}
-.red{background:#e74a3b;color:white;}
+.free{background:#22c55e;}
+.using{background:#eab308;}
+.broken{background:#ef4444;}
 </style>
 </head>
 
 <body>
 
-<div class="header">
-<h1>🔬 QR Lab Pro</h1>
-<p>Quản lý thiết bị</p>
+<div class="container">
+
+<h2>📱 QR Lab Pro Max</h2>
+
+<div class="card">
+<button class="scan" onclick="startScan()">📷 Quét QR</button>
+<div id="reader"></div>
+<div id="result"></div>
+
+<button class="use" onclick="startUse()">📅 Sử dụng</button>
+<button class="stop" onclick="stopUse()">⏹ Kết thúc</button>
+<button class="error" onclick="reportError()">⚠ Báo lỗi</button>
 </div>
 
 <div class="card">
+<h3>📊 Thống kê</h3>
+<canvas id="chart"></canvas>
+</div>
 
-<button class="scan" onclick="startScan()">📷 Quét QR</button>
-
-<div id="reader" style="width:100%;margin-top:10px;"></div>
-
-<input id="username" placeholder="Nhập tên người dùng...">
-
-<div id="result"></div>
-
-<button class="use" onclick="useDevice()">📅 Sử dụng</button>
-<button class="error" onclick="releaseDevice()">🔄 Trả thiết bị</button>
+<div class="card">
+<h3>📜 Lịch sử</h3>
+<div id="history"></div>
+</div>
 
 </div>
 
