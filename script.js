@@ -2,7 +2,6 @@ let scanner = null;
 let currentDevice = "";
 let chart = null;
 
-// ===== 1. DỮ LIỆU 10 THIẾT BỊ =====
 let devices = JSON.parse(localStorage.getItem("devices")) || {
     "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
     "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
@@ -19,7 +18,6 @@ let devices = JSON.parse(localStorage.getItem("devices")) || {
 function save() { localStorage.setItem("devices", JSON.stringify(devices)); }
 function formatTime(ms) { let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
 
-// ===== 2. HÀM QUÉT QR (ĐÃ THÊM TÍNH NĂNG NHẬP TAY KHI LỖI) =====
 function startScan() {
     if(typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
     const reader = document.getElementById("reader");
@@ -35,7 +33,6 @@ function startScan() {
                 let rawText = text.trim();
                 let foundId = "";
 
-                // Bước 1: Thử bóc tách ID từ Link hoặc nội dung QR
                 if (rawText.includes("id=")) {
                     foundId = rawText.split("id=").pop().split("&")[0].toUpperCase();
                 } else {
@@ -43,31 +40,19 @@ function startScan() {
                     foundId = match ? match[0].toUpperCase() : rawText.toUpperCase();
                 }
 
-                // Bước 2: NẾU QUÉT RA LINK LẠ (Như link rút gọn Me-QR)
-                // Hoặc ID không tồn tại trong danh sách 10 máy
-                if (!devices[foundId]) {
-                    console.log("Dữ liệu QR lạ:", rawText);
-                    let manualId = prompt("❌ Không nhận diện được máy!\nVui lòng nhập ID thủ công (Ví dụ: TB001):");
-                    if (manualId) {
-                        foundId = manualId.toUpperCase().trim();
-                    }
-                }
-
-                // Bước 3: Kiểm tra và hiển thị
                 if (devices[foundId]) {
                     currentDevice = foundId;
                     if (navigator.vibrate) navigator.vibrate(200);
                     showDevice(currentDevice);
                     updateChart();
-                } else if (foundId !== "") {
+                } else {
                     alert("❌ Thiết bị " + foundId + " không tồn tại!");
                 }
             });
         });
-    }).catch(err => alert("❌ Không mở được camera: " + err));
+    });
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ =====
 function showDevice(id) {
     let d = devices[id];
     let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
@@ -83,23 +68,13 @@ function showDevice(id) {
         </div>`;
 }
 
-// ===== 4. ĐIỀU KHIỂN =====
 function useDevice() {
     if(!currentDevice) return alert("⚠️ Hãy quét QR!");
-    let nameInput = document.getElementById("user-name");
-    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên người dùng:");
-    
+    let name = document.getElementById("user-name").value || prompt("Nhập tên:");
     if(!name) return;
-    
     let d = devices[currentDevice];
-    if(d.status === "Đang sử dụng") return alert("❌ Máy này đang có người dùng!");
-    
-    d.status = "Đang sử dụng"; 
-    d.user = name; 
-    d.start = Date.now();
-    save(); 
-    showDevice(currentDevice); 
-    updateChart();
+    d.status = "Đang sử dụng"; d.user = name; d.start = Date.now();
+    save(); showDevice(currentDevice); updateChart();
 }
 
 function stopDevice() {
@@ -108,64 +83,35 @@ function stopDevice() {
     if(d.start) {
         let used = Date.now() - d.start;
         let history = JSON.parse(localStorage.getItem("history")) || [];
-        history.push({ 
-            device: d.name, 
-            user: d.user, 
-            time: new Date().toLocaleString(), 
-            duration: formatTime(used) 
-        });
+        history.push({ device: d.name, user: d.user, time: new Date().toLocaleString(), duration: formatTime(used) });
         localStorage.setItem("history", JSON.stringify(history));
-        d.total += used; 
-        d.start = null;
-        alert("✅ Đã kết thúc! Thời gian dùng: " + formatTime(used));
+        d.total += used; d.start = null;
     }
-    d.status = "Trống"; 
-    d.user = "";
-    save(); 
-    showDevice(currentDevice); 
-    updateChart();
+    d.status = "Trống"; d.user = "";
+    save(); showDevice(currentDevice); updateChart();
 }
 
 function errorDevice() {
     if(!currentDevice) return alert("⚠️ Quét QR trước!");
-    if(confirm("Xác nhận báo hỏng thiết bị này?")) {
-        devices[currentDevice].status = "Bị hỏng";
-        save(); 
-        showDevice(currentDevice); 
-        updateChart();
-    }
+    devices[currentDevice].status = "Bị hỏng";
+    save(); showDevice(currentDevice); updateChart();
 }
 
-// ===== 5. BIỂU ĐỒ =====
 function updateChart() {
     let u=0, f=0, b=0;
     Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
     if(chart) chart.destroy();
-    let ctx = document.getElementById("chart");
-    if(!ctx) return;
-    chart = new Chart(ctx, {
+    chart = new Chart(document.getElementById("chart"), {
         type: "doughnut",
-        data: { 
-            labels: ["Dùng","Trống","Hỏng"], 
-            datasets: [{ data: [u,f,b], backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"] }] 
-        },
+        data: { labels: ["Dùng","Trống","Hỏng"], datasets: [{ data: [u,f,b], backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"] }] },
         options: { responsive: true, maintainAspectRatio: false }
     });
 }
 
-// Tự động nhận diện nếu link có ?id=TB...
 function checkUrl() {
     let id = new URLSearchParams(window.location.search).get('id');
-    if (id && devices[id.toUpperCase()]) { 
-        currentDevice = id.toUpperCase(); 
-        showDevice(currentDevice); 
-    }
+    if (id && devices[id.toUpperCase()]) { currentDevice = id.toUpperCase(); showDevice(currentDevice); }
 }
 
-// Cập nhật đồng hồ nhảy giây
-setInterval(() => { 
-    if (currentDevice && devices[currentDevice].start) showDevice(currentDevice); 
-}, 1000);
-
-checkUrl(); 
-updateChart();
+setInterval(() => { if (currentDevice && devices[currentDevice].start) showDevice(currentDevice); }, 1000);
+checkUrl(); updateChart();
