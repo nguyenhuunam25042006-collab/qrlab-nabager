@@ -177,12 +177,27 @@ result.innerHTML=`
 
 // ===== USE =====
 function useDevice(){
-if(!currentDevice) return alert("Quét trước");
 
-devices[currentDevice].status="Đang sử dụng";
+if(!currentDevice){
+alert("Chưa quét thiết bị");
+return;
+}
+
+let name = document.getElementById("username").value;
+
+if(!name){
+alert("Nhập tên trước!");
+return;
+}
+
+devices[currentDevice].status = "Đang sử dụng";
+devices[currentDevice].user = name;
+
 save();
 showDevice(currentDevice);
 updateChart();
+
+alert("✅ Đã lưu: " + name);
 }
 
 // ===== ERROR =====
