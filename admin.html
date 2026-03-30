@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - QR Lab Pro</title>
+    <title>Bảng Điều Khiển Admin - QR Lab Pro</title>
     <style>
         :root {
             --admin-neon: #2ecc71; /* Xanh lá quản trị */
@@ -29,9 +29,7 @@
         .device-img { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); filter: grayscale(50%); transition: 0.3s; }
         .device:hover .device-img { filter: grayscale(0%); border-color: var(--admin-neon); }
         
-        /* Hiệu ứng ô QR nhỏ */
         .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; border-radius: 8px; cursor: zoom-in; transition: 0.3s; }
-        .device-qr:hover { transform: scale(1.05); }
         
         input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); box-sizing: border-box; color: var(--admin-neon); font-size: 15px; }
         input:focus { outline: none; border-color: var(--admin-neon); }
@@ -48,7 +46,6 @@
         .reset:hover { background: rgba(243, 156, 18, 0.1); }
         
         .logout { background: rgba(255,255,255,0.05); color: #bdc3c7; width: 100%; border: 1px solid rgba(255,255,255,0.1); }
-        .logout:hover { background: rgba(255,255,255,0.1); color: white; }
 
         /* Badge Trạng thái Admin */
         .badge { padding: 4px 10px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; text-transform: uppercase; }
@@ -58,52 +55,54 @@
         
         #history-list { font-size: 13px; max-height: 250px; overflow-y: auto; color: rgba(255,255,255,0.7); }
 
-        /* ===== MODAL PHÓNG TO QR ===== */
+        /* MODAL PHÓNG TO QR */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); justify-content: center; align-items: center; backdrop-filter: blur(10px); }
         .modal-content { background-color: #ffffff; padding: 25px; border-radius: 20px; text-align: center; max-width: 90%; animation: zoomIn 0.3s ease; color: #333; }
         #big-qr img { width: 280px !important; height: 280px !important; margin: 0 auto; }
         .close-btn { margin-top: 20px; background: #000; color: white; width: 100%; padding: 12px; border-radius: 10px; }
-        @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="header">SYSTEM ADMIN TERMINAL</div>
+        <div class="header">HỆ THỐNG QUẢN TRỊ VIÊN</div>
+        
         <div class="card">
-            <h3>📅 GLOBAL LOGBOOK (LAST 10 ENTRIES)</h3>
-            <div id="history-list">SYNCHRONIZING DARA...</div>
+            <h3>🕒 LỊCH SỬ SỬ DỤNG (10 HOẠT ĐỘNG GẦN NHẤT)</h3>
+            <div id="history-list">ĐANG ĐỒNG BỘ DỮ LIỆU...</div>
         </div>
+
         <div class="card">
-            <h3>📋 INVENTORY COMMAND CENTER (10 UNITS)</h3>
-            <input id="search" placeholder="🔍 ACCESS UNIT ID OR NAME..." oninput="render()">
+            <h3>📋 TRUNG TÂM QUẢN LÝ THIẾT BỊ (10 MÁY)</h3>
+            <input id="search" placeholder="🔍 TÌM KIẾM THEO TÊN HOẶC MÃ ID..." oninput="render()">
             <div id="list"></div>
         </div>
+
         <div class="card" style="text-align: center;">
-            <button class="export" onclick="exportFullHistory()">📊 GENERATE EXPORT (EXCEL)</button>
-            <button class="reset" onclick="resetAll()">🔄 MASTER RESET STATUS</button>
-            <button class="logout" onclick="logout()">🚪 TERMINATE SESSION</button>
+            <button class="export" onclick="exportFullHistory()">📊 XUẤT NHẬT KÝ (FILE EXCEL)</button>
+            <button class="reset" onclick="resetAll()">🔄 RESET TOÀN BỘ TRẠNG THÁI</button>
+            <button class="logout" onclick="logout()">🚪 ĐĂNG XUẤT KHỎI HỆ THỐNG</button>
         </div>
     </div>
 
     <div id="qrModal" class="modal" onclick="closeQR()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 id="modal-name" style="margin-bottom: 15px; color: #000; text-transform: uppercase;">UNIT ID</h3>
+            <h3 id="modal-name" style="margin-bottom: 15px; color: #000; text-transform: uppercase;">ID THIẾT BỊ</h3>
             <div id="big-qr"></div>
-            <p style="color: #666; margin-top: 15px; font-size: 14px;">POSITION QR-CODE NEAR SCANNER</p>
-            <button class="close-btn" onclick="closeQR()">CLOSE SESSION</button>
+            <p style="color: #666; margin-top: 15px; font-size: 14px;">HƯỚNG CAMERA VÀO MÃ ĐỂ QUÉT</p>
+            <button class="close-btn" onclick="closeQR()">ĐÓNG LẠI</button>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
     <script>
+        // Copy toàn bộ logic JavaScript Admin của bạn vào đây (đảm bảo role admin)
         if(localStorage.getItem("role") !== "admin") location.href = "./login.html";
 
-        // Khởi tạo dữ liệu thật của bạn
         let devices = JSON.parse(localStorage.getItem("devices")) || {
             "TB001": { name: "Tủ sấy", status: "Trống", user: "", total: 0 },
-            "TB002": { name: "Thiết bị hằn lún vết bánh xe", status: "Trống", user: "", total: 0 },
+            "TB002": { name: "Hằn lún vết bánh xe", status: "Trống", user: "", total: 0 },
             "TB003": { name: "Marshall tự động", status: "Trống", user: "", total: 0 },
-            "TB004": { name: "Thiết bị đầm bê tông nhựa", status: "Trống", user: "", total: 0 },
+            "TB004": { name: "Đầm bê tông nhựa", status: "Trống", user: "", total: 0 },
             "TB005": { name: "Parafin nhựa", status: "Trống", user: "", total: 0 },
             "TB006": { name: "Kéo dài của nhựa", status: "Trống", user: "", total: 0 },
             "TB007": { name: "Độ nhớt Brookfield", status: "Trống", user: "", total: 0 },
@@ -124,19 +123,19 @@
                 let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
                 
                 let qCount = queues[id] ? queues[id].length : 0;
-                let queueHtml = qCount > 0 ? `<br><small style="color:#e67e22">⏳ PENDING QUEUE: <b>${qCount} USER(S)</b></small>` : "";
+                let queueHtml = qCount > 0 ? `<br><small style="color:#e67e22">⏳ ĐANG CHỜ: <b>${qCount} NGƯỜI</b></small>` : "";
 
                 let devEl = document.createElement("div"); devEl.className = "device";
                 devEl.innerHTML = `
                     <div class="device-info">
                         <b>${d.name}</b> (${id})${queueHtml}<br>
                         <span class="badge ${color}">${d.status}</span><br>
-                        <small>USER: <b>${d.user || "NONE"}</b> | TOTAL OP: ${formatTime(d.total)}</small><br>
-                        <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
+                        <small>NGƯỜI DÙNG: <b>${d.user || "TRỐNG"}</b> | TỔNG GIỜ: ${formatTime(d.total)}</small><br>
+                        <button class="fix" onclick="fix('${id}')">✔ RESET MÁY</button>
                     </div>
                     <div class="device-media">
                         <img src="images/${id}.jpg" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
-                        <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')" title="Zoom QR"></div>
+                        <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')" title="Phóng to"></div>
                     </div>`;
                 listDiv.appendChild(devEl);
                 let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
@@ -163,7 +162,7 @@
             historyDiv.innerHTML = history.slice(-10).reverse().map(h => 
                 `<div style="font-size:12px; border-bottom:1px solid var(--glass-border); padding:8px 0;">
                     <b style="color:var(--admin-neon);">${h.device}</b> - 👤 ${h.user}<br>
-                    <small>⏱ DURATION: ${h.duration} | 📅 DATE: ${h.time}</small>
+                    <small>⏱ THỜI GIAN DÙNG: ${h.duration} | 📅 NGÀY: ${h.time}</small>
                 </div>`
             ).join("");
         }
@@ -182,7 +181,7 @@
         }
         
         function resetAll() { 
-            if(confirm("Reset master master?")) { 
+            if(confirm("Xác nhận reset toàn bộ hệ thống?")) { 
                 Object.keys(devices).forEach(id => { 
                     devices[id].status="Trống"; 
                     devices[id].user="";
@@ -196,16 +195,15 @@
 
         function logout() { localStorage.removeItem("role"); location.href = "./login.html"; }
 
-        // MỚI: Hàm xuất lịch sử ra Excel (CSV)
         function exportFullHistory() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            if(history.length === 0) return alert("Không có nhật ký!");
+            if(history.length === 0) return alert("Không có nhật ký để xuất!");
             let csv = "\uFEFFThiết bị,Người dùng,Thời gian sử dụng,Ngày tháng\n";
             history.forEach(h => { csv += `${h.device},${h.user},${h.duration},${h.time}\n`; });
             let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             let link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `Lab_Logbook_${new Date().toLocaleDateString()}.csv`;
+            link.download = `Nhat_Ky_Lab_${new Date().toLocaleDateString()}.csv`;
             link.click();
         }
         
@@ -219,7 +217,6 @@
         
         render(); 
         renderHistory();
-        
         setInterval(() => {
             devices = JSON.parse(localStorage.getItem("devices"));
             render();
