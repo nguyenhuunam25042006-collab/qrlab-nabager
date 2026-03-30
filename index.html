@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Lab Pro - User</title>
+    <title>QR Lab Pro - Người dùng</title>
     <style>
         /* 🎨 CSS GIAO DIỆN CÔNG NGHỆ TƯƠNG LAI (FUTURISTIC UI) */
         :root {
@@ -28,7 +28,7 @@
             position: relative;
         }
 
-        /* Hiệu ứng radar quét nền cho cảm giác công nghệ */
+        /* Hiệu ứng radar quét nền */
         body::before {
             content: '';
             position: absolute;
@@ -70,6 +70,7 @@
         .card {
             background: var(--glass-bg);
             backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
             border-radius: 20px;
             padding: 25px;
             border: 1px solid var(--glass-border);
@@ -105,10 +106,7 @@
             text-transform: uppercase;
         }
         .free { background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; color: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
-        
-        /* Hiệu ứng Pulse cho máy đang dùng */
         .using { background: rgba(241, 196, 15, 0.2); border: 1px solid #f1c40f; color: #f1c40f; animation: neonPulse 1.5s infinite alternate; }
-        
         .broken { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; box-shadow: 0 0 10px #e74c3c; }
 
         /* Nút bấm Neon (Cyber Button) */
@@ -141,7 +139,7 @@
         #btn-checkin { background: rgba(142, 68, 173, 0.8); border: 1px solid #9b59b6; color: white; }
         #btn-stop { background: rgba(243, 156, 18, 0.8); border: 1px solid #f39c12; color: white; }
         #btn-error { background: rgba(231, 76, 60, 0.8); border: 1px solid #e74c3c; color: white; }
-        #btn-log { background: transparent; border: 1px solid var(--glass-border); color: #bdc3c7; margin-top: 15px; }
+        #btn-log { background: transparent; border: 1px solid var(--glass-border); color: #bdc3c7; margin-top: 15px; font-size: 13px; }
 
         input {
             width: 100%;
@@ -164,11 +162,6 @@
             margin-top: 10px;
         }
 
-        /* Bảng nhật ký kính mờ */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; color: rgba(255,255,255,0.8); }
-        th, td { border: 1px solid var(--glass-border); padding: 8px; text-align: left; }
-        th { background-color: var(--glass-border); color: var(--primary-neon); }
-
         /* Animations */
         @keyframes radar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         @keyframes neonPulse { from { box-shadow: 0 0 5px #f1c40f; } to { box-shadow: 0 0 15px #f1c40f, 0 0 25px rgba(241, 196, 15, 0.5); } }
@@ -179,35 +172,35 @@
     <div class="main-container">
         <div class="header-section">
             <h1>🔬 QR Lab Pro</h1>
-            <p>ADVANCED EQUIPMENT CONTROL</p>
+            <p>ĐIỀU KHIỂN THIẾT BỊ NÂNG CAO</p>
         </div>
 
         <div class="card">
             <div id="reader"></div> 
             <div id="result">
-                <p style="color: #666; font-size: 12px; text-transform: uppercase;">SCAN UNIT QR-CODE TO INITIALIZE</p>
+                <p style="color: #666; font-size: 12px; text-transform: uppercase;">QUÉT MÃ QR THIẾT BỊ ĐỂ BẮT ĐẦU</p>
             </div>
 
-            <button id="btn-scan" onclick="startScan()">📷 INITIALIZE SCANNER</button>
+            <button id="btn-scan" onclick="startScan()">📷 KHỞI CHẠY MÁY QUÉT</button>
             
-            <input id="user-name" placeholder="IDENTIFY USERNAME...">
+            <input id="user-name" placeholder="XÁC MINH TÊN NGƯỜI DÙNG...">
             
-            <button id="btn-use" onclick="useDevice()">📅 COMMENCE OPERATION</button>
+            <button id="btn-use" onclick="useDevice()">📅 BẮT ĐẦU VẬN HÀNH</button>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button id="btn-queue" onclick="joinQueue()" style="font-size: 13px;">📝 RESERVE QUEUE</button>
-                <button id="btn-checkin" onclick="checkInFromQueue()" style="font-size: 13px;">✅ CHECK-IN</button>
+                <button id="btn-queue" onclick="joinQueue()" style="font-size: 13px;">📝 ĐĂNG KÝ CHỜ</button>
+                <button id="btn-checkin" onclick="checkInFromQueue()" style="font-size: 13px;">✅ XÁC NHẬN VÀO</button>
             </div>
             
-            <button id="btn-stop" onclick="stopDevice()">⏹ TERMINATE OPERATION</button>
-            <button id="btn-error" onclick="errorDevice()">⚠️ REPORT UNIT FAILURE</button>
+            <button id="btn-stop" onclick="stopDevice()">⏹ KẾT THÚC SỬ DỤNG</button>
+            <button id="btn-error" onclick="errorDevice()">⚠️ BÁO CÁO SỰ CỐ</button>
             
-            <button id="btn-log" onclick="showLogbook()">📊 ACCESS LOGBOOK</button>
+            <button id="btn-log" onclick="showLogbook()">📊 XEM NHẬT KÝ HỆ THỐNG</button>
         </div>
 
         <div class="card">
             <h3 style="margin-top: 0; color: var(--primary-neon); font-size: 16px; letter-spacing: 1px; text-transform: uppercase;">
-                📊 UNIT STATUS METRICS
+                📊 THỐNG KÊ TRẠNG THÁI
             </h3>
             <div class="chart-container">
                 <canvas id="chart"></canvas>
