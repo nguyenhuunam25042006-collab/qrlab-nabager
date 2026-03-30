@@ -35,7 +35,6 @@ function startScan() {
                 let rawText = text.trim();
                 let foundId = "";
 
-                // Bước 1: Thử bóc tách ID từ Link hoặc nội dung QR
                 if (rawText.includes("id=")) {
                     foundId = rawText.split("id=").pop().split("&")[0].toUpperCase();
                 } else {
@@ -43,8 +42,6 @@ function startScan() {
                     foundId = match ? match[0].toUpperCase() : rawText.toUpperCase();
                 }
 
-                // Bước 2: NẾU QUÉT RA LINK LẠ (Như link rút gọn Me-QR)
-                // Hoặc ID không tồn tại trong danh sách 10 máy
                 if (!devices[foundId]) {
                     console.log("Dữ liệu QR lạ:", rawText);
                     let manualId = prompt("❌ Không nhận diện được máy!\nVui lòng nhập ID thủ công (Ví dụ: TB001):");
@@ -53,7 +50,6 @@ function startScan() {
                     }
                 }
 
-                // Bước 3: Kiểm tra và hiển thị
                 if (devices[foundId]) {
                     currentDevice = foundId;
                     if (navigator.vibrate) navigator.vibrate(200);
@@ -81,6 +77,9 @@ function showDevice(id) {
             <p>👤 ND: <b>${d.user || "Chưa có"}</b></p>
             <p style="font-size:1.4em; font-weight:bold; color:#4a6cf7;">${timeText}</p>
         </div>`;
+    
+    // Phần mở rộng cho Hàng đợi (Sẽ được gọi tự động)
+    renderQueueInfo(id);
 }
 
 // ===== 4. ĐIỀU KHIỂN =====
@@ -153,7 +152,6 @@ function updateChart() {
     });
 }
 
-// Tự động nhận diện nếu link có ?id=TB...
 function checkUrl() {
     let id = new URLSearchParams(window.location.search).get('id');
     if (id && devices[id.toUpperCase()]) { 
@@ -162,10 +160,95 @@ function checkUrl() {
     }
 }
 
-// Cập nhật đồng hồ nhảy giây
 setInterval(() => { 
     if (currentDevice && devices[currentDevice].start) showDevice(currentDevice); 
 }, 1000);
 
 checkUrl(); 
 updateChart();
+
+// ================================================================
+// ===== PHẦN THÊM MỚI: TÍNH NĂNG 1 & 2 (KHÔNG SỬA CODE CŨ) =====
+// ================================================================
+
+let queues = JSON.parse(localStorage.getItem("queues")) || {};
+function saveQueue() { localStorage.setItem("queues", JSON.stringify(queues)); }
+
+// Hàm hiển thị danh sách chờ dưới thông tin thiết bị
+function renderQueueInfo(id) {
+    let q = queues[id] || [];
+    if(q.length > 0) {
+        let qHtml = `<div style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:10px; border:1px dashed #4a6cf7;">
+            <p style="margin:0; font-size:0.9em; color:#4a6cf7; font-weight:bold;">📋 Danh sách chờ (${q.length}):</p>
+            <p style="margin:5px 0 0 0; font-size:0.85em;">${q.map((item, index) => `${index+1}. ${item.userName}`).join(" | ")}</p>
+        </div>`;
+        document.getElementById("result").innerHTML += qHtml;
+    }
+}
+
+// 1. Hàm Đặt chỗ (Join Queue)
+function joinQueue() {
+    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị trước!");
+    let name = prompt("Nhập tên của bạn để đăng ký hàng đợi:");
+    if(!name) return;
+
+    if(!queues[currentDevice]) queues[currentDevice] = [];
+    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có trong danh sách!");
+
+    queues[currentDevice].push({ userName: name, time: new Date().toLocaleString() });
+    saveQueue();
+    alert("✅ Đã thêm vào hàng đợi!");
+    showDevice(currentDevice);
+}
+
+// 2. Hàm Check-in cho người chờ
+function checkInFromQueue() {
+    if(!currentDevice || !queues[currentDevice] || queues[currentDevice].length === 0) 
+        return alert("⚠️ Không có ai trong danh sách chờ!");
+
+    let nextUser = queues[currentDevice][0].userName;
+    if(confirm(`Xác nhận cho ${nextUser} bắt đầu sử dụng?`)) {
+        queues[currentDevice].shift();
+        saveQueue();
+        
+        // Ghi đè tạm thời để useDevice dùng tên này
+        let d = devices[currentDevice];
+        d.status = "Đang sử dụng"; d.user = nextUser; d.start = Date.now();
+        save(); showDevice(currentDevice); updateChart();
+    }
+}
+
+// 3. Hàm hiển thị Nhật ký (Logbook)
+function showLogbook() {
+    let history = JSON.parse(localStorage.getItem("history")) || [];
+    if(history.length === 0) return alert("Chưa có nhật ký nào!");
+
+    let rows = history.slice().reverse().map(h => `
+        <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:8px;">${h.device}</td>
+            <td style="padding:8px;">${h.user}</td>
+            <td style="padding:8px;">${h.duration}</td>
+        </tr>`).join("");
+
+    document.getElementById("result").innerHTML = `
+        <h3>Nhật ký Lab</h3>
+        <table style="width:100%; border-collapse:collapse; font-size:0.8em; text-align:left;">
+            <thead><tr style="background:#4a6cf7; color:#fff;"><th style="padding:8px;">Máy</th><th style="padding:8px;">Người dùng</th><th style="padding:8px;">Dùng</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table>
+        <button onclick="downloadCSV()" style="margin-top:10px; background:#27ae60; color:white; border:none; padding:10px; width:100%; border-radius:5px;">Xuất file Excel (CSV)</button>
+        <button onclick="showDevice(currentDevice)" style="margin-top:5px; background:#95a5a6; color:white; border:none; padding:10px; width:100%; border-radius:5px;">Quay lại</button>
+    `;
+}
+
+// 4. Hàm xuất CSV
+function downloadCSV() {
+    let history = JSON.parse(localStorage.getItem("history")) || [];
+    let csv = "\uFEFFThiết bị,Người dùng,Thời gian,Thời lượng\n";
+    history.forEach(h => { csv += `${h.device},${h.user},${h.time},${h.duration}\n`; });
+    let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+    let link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "nhat_ky_lab.csv";
+    link.click();
+}
