@@ -4,24 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QR Lab Pro - User</title>
-    
     <style>
-        /* 🎨 CSS GIAO DIỆN CHUẨN ĐIỆN THOẠI TRÊN LAPTOP */
-        body {
-            margin: 0;
-            font-family: -apple-system, system-ui, sans-serif;
-            background: linear-gradient(135deg, #4a6cf7, #7b9cff);
-            color: white;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center; /* Căn giữa Laptop */
-            padding: 20px 0;
+        /* 🎨 CSS GIAO DIỆN CÔNG NGHỆ TƯƠNG LAI (FUTURISTIC UI) */
+        :root {
+            --primary-neon: #00f2fe; /* Xanh Cyan công nghệ */
+            --secondary-neon: #4facfe; /* Xanh dương đậm */
+            --bg-dark: #0a0e17; /* Nền tối */
+            --text-main: #ffffff;
+            --glass-bg: rgba(255, 255, 255, 0.05); /* Kính mờ */
+            --glass-border: rgba(255, 255, 255, 0.1); /* Viền kính */
         }
 
-        /* Khung chứa chính (Giới hạn độ rộng như Phone) */
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 20px 0;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Hiệu ứng radar quét nền cho cảm giác công nghệ */
+        body::before {
+            content: '';
+            position: absolute;
+            width: 150vw;
+            height: 150vh;
+            background-image: radial-gradient(var(--glass-border) 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.3;
+            animation: radar 120s linear infinite;
+            z-index: -1;
+        }
+
         .main-container {
-            width: 90%;
-            max-width: 450px; /* Độ rộng chuẩn để Laptop nhìn đẹp */
+            width: 92%;
+            max-width: 450px;
             display: flex;
             flex-direction: column;
             gap: 20px;
@@ -30,27 +52,40 @@
         .header-section {
             text-align: center;
             margin-bottom: 10px;
+            position: relative;
         }
 
-        .header-section h1 { margin: 0; font-size: 28px; }
-        .header-section p { margin: 5px 0; opacity: 0.8; font-size: 14px; }
+        .header-section h1 {
+            margin: 0;
+            font-size: 32px;
+            background: linear-gradient(90deg, var(--primary-neon), var(--secondary-neon));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.5);
+        }
 
-        /* Thẻ trắng chứa nội dung */
+        .header-section p { margin: 5px 0; opacity: 0.7; font-size: 14px; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* Thẻ Kính mờ (Glassmorphism Card) */
         .card {
-            background: white;
-            border-radius: 30px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
             padding: 25px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            color: #333;
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
         }
 
-        /* Vùng hiển thị Camera và Kết quả */
+        /* Vùng hiển thị Camera */
         #reader {
             width: 100%;
-            border-radius: 20px;
+            border-radius: 15px;
             overflow: hidden;
-            background: #f0f0f0;
+            background: rgba(0, 0, 0, 0.2);
             margin-bottom: 15px;
+            border: 1px dashed var(--glass-border);
         }
 
         #result {
@@ -58,13 +93,31 @@
             margin-bottom: 20px;
         }
 
-        /* CSS Nút bấm giống ảnh bạn gửi */
+        /* Badge Trạng thái Neon */
+        .badge {
+            padding: 5px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            display: inline-block;
+            margin-top: 5px;
+            text-transform: uppercase;
+        }
+        .free { background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; color: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+        
+        /* Hiệu ứng Pulse cho máy đang dùng */
+        .using { background: rgba(241, 196, 15, 0.2); border: 1px solid #f1c40f; color: #f1c40f; animation: neonPulse 1.5s infinite alternate; }
+        
+        .broken { background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; color: #e74c3c; box-shadow: 0 0 10px #e74c3c; }
+
+        /* Nút bấm Neon (Cyber Button) */
         button {
             width: 100%;
             padding: 16px;
             margin: 8px 0;
             border: none;
-            border-radius: 15px;
+            border-radius: 12px;
             font-size: 16px;
             font-weight: bold;
             color: white;
@@ -73,55 +126,52 @@
             align-items: center;
             justify-content: center;
             gap: 10px;
-            transition: 0.2s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
         }
 
-        button:active { transform: scale(0.98); opacity: 0.9; }
+        button:active { transform: scale(0.97); }
 
-        #btn-scan { background: #4a6cf7; }  /* Xanh dương */
-        #btn-use { background: #2ecc71; }   /* Xanh lá */
-        #btn-queue { background: #34495e; } /* Xanh đậm (Nút Hàng đợi) */
-        #btn-checkin { background: #8e44ad; } /* Tím (Nút Check-in) */
-        #btn-stop { background: #f39c12; }  /* Cam */
-        #btn-error { background: #e74c3c; } /* Đỏ */
-        #btn-log { background: #95a5a6; margin-top: 15px; } /* Xám (Nút Nhật ký) */
+        #btn-scan { background: linear-gradient(45deg, var(--secondary-neon), var(--primary-neon)); box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4); }
+        #btn-use { background: rgba(46, 204, 113, 0.8); border: 1px solid #2ecc71; color: white; }
+        #btn-queue { background: rgba(52, 73, 94, 0.8); border: 1px solid #7f8c8d; color: #bdc3c7; }
+        #btn-checkin { background: rgba(142, 68, 173, 0.8); border: 1px solid #9b59b6; color: white; }
+        #btn-stop { background: rgba(243, 156, 18, 0.8); border: 1px solid #f39c12; color: white; }
+        #btn-error { background: rgba(231, 76, 60, 0.8); border: 1px solid #e74c3c; color: white; }
+        #btn-log { background: transparent; border: 1px solid var(--glass-border); color: #bdc3c7; margin-top: 15px; }
 
         input {
             width: 100%;
             padding: 15px;
             margin: 10px 0;
             border-radius: 12px;
-            border: 1px solid #eee;
-            background: #f8fafc;
+            border: 1px solid var(--glass-border);
+            background: rgba(0, 0, 0, 0.3);
             box-sizing: border-box;
             font-size: 16px;
+            color: var(--primary-neon);
             text-align: center;
         }
 
-        /* Biểu đồ Thống kê */
+        input:focus { outline: none; border-color: var(--primary-neon); }
+
+        /* Biểu đồ */
         .chart-container {
             height: 220px;
             margin-top: 10px;
         }
 
-        /* Badge trạng thái */
-        .badge {
-            padding: 5px 12px;
-            border-radius: 10px;
-            font-size: 13px;
-            font-weight: bold;
-            color: white;
-            display: inline-block;
-            margin-top: 5px;
-        }
-        .free { background: #2ecc71; }
-        .using { background: #f1c40f; color: black; }
-        .broken { background: #e74c3c; }
+        /* Bảng nhật ký kính mờ */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; color: rgba(255,255,255,0.8); }
+        th, td { border: 1px solid var(--glass-border); padding: 8px; text-align: left; }
+        th { background-color: var(--glass-border); color: var(--primary-neon); }
 
-        /* Bảng nhật ký */
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        /* Animations */
+        @keyframes radar { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes neonPulse { from { box-shadow: 0 0 5px #f1c40f; } to { box-shadow: 0 0 15px #f1c40f, 0 0 25px rgba(241, 196, 15, 0.5); } }
     </style>
 </head>
 <body>
@@ -129,35 +179,35 @@
     <div class="main-container">
         <div class="header-section">
             <h1>🔬 QR Lab Pro</h1>
-            <p>Quản lý thiết bị thí nghiệm</p>
+            <p>ADVANCED EQUIPMENT CONTROL</p>
         </div>
 
         <div class="card">
             <div id="reader"></div> 
             <div id="result">
-                <p style="color: #999;">Quét mã trên máy để bắt đầu</p>
+                <p style="color: #666; font-size: 12px; text-transform: uppercase;">SCAN UNIT QR-CODE TO INITIALIZE</p>
             </div>
 
-            <button id="btn-scan" onclick="startScan()">📷 Quét QR</button>
+            <button id="btn-scan" onclick="startScan()">📷 INITIALIZE SCANNER</button>
             
-            <input id="user-name" placeholder="Nhập tên người dùng...">
+            <input id="user-name" placeholder="IDENTIFY USERNAME...">
             
-            <button id="btn-use" onclick="useDevice()">📅 Sử dụng ngay</button>
+            <button id="btn-use" onclick="useDevice()">📅 COMMENCE OPERATION</button>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <button id="btn-queue" onclick="joinQueue()" style="font-size: 14px;">📝 Đặt chỗ</button>
-                <button id="btn-checkin" onclick="checkInFromQueue()" style="font-size: 14px;">✅ Check-in</button>
+                <button id="btn-queue" onclick="joinQueue()" style="font-size: 13px;">📝 RESERVE QUEUE</button>
+                <button id="btn-checkin" onclick="checkInFromQueue()" style="font-size: 13px;">✅ CHECK-IN</button>
             </div>
             
-            <button id="btn-stop" onclick="stopDevice()">⏹ Kết thúc</button>
-            <button id="btn-error" onclick="errorDevice()">⚠️ Báo lỗi</button>
+            <button id="btn-stop" onclick="stopDevice()">⏹ TERMINATE OPERATION</button>
+            <button id="btn-error" onclick="errorDevice()">⚠️ REPORT UNIT FAILURE</button>
             
-            <button id="btn-log" onclick="showLogbook()">📋 Xem Nhật ký Lab</button>
+            <button id="btn-log" onclick="showLogbook()">📊 ACCESS LOGBOOK</button>
         </div>
 
         <div class="card">
-            <h3 style="margin-top: 0; display: flex; align-items: center; gap: 10px;">
-                📊 Thống kê thiết bị
+            <h3 style="margin-top: 0; color: var(--primary-neon); font-size: 16px; letter-spacing: 1px; text-transform: uppercase;">
+                📊 UNIT STATUS METRICS
             </h3>
             <div class="chart-container">
                 <canvas id="chart"></canvas>
