@@ -60,7 +60,7 @@ function startScan() {
     }).catch(err => alert("❌ Lỗi Camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ (CYBER STYLE) =====
+// ===== 3. HIỂN THỊ THIẾT BỊ (PHONG CÁCH CYBER) =====
 function showDevice(id) {
     let d = devices[id];
     let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
@@ -71,23 +71,23 @@ function showDevice(id) {
             <img src="images/${id}.jpg" style="width:180px; height:180px; object-fit:cover; border-radius:20px; margin-bottom:10px; border: 2px solid var(--glass-border);" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
             <h3 style="color: var(--primary-neon); margin: 10px 0;">${d.name}</h3>
             <span class="badge ${colorClass}">${d.status}</span>
-            <p style="margin-top:15px; font-size: 0.9em; color: rgba(255,255,255,0.7);">👤 OPERATOR: <b style="color: white;">${d.user || "VACANT"}</b></p>
+            <p style="margin-top:15px; font-size: 0.9em; color: rgba(255,255,255,0.7);">👤 NGƯỜI DÙNG: <b style="color: white;">${d.user || "ĐANG TRỐNG"}</b></p>
             <p style="font-size:1.6em; font-weight:bold; color: var(--primary-neon); text-shadow: 0 0 10px rgba(0,242,254,0.5);">${timeText}</p>
         </div>`;
     
     renderQueueInfo(id);
 }
 
-// ===== 4. ĐIỀU KHIỂN =====
+// ===== 4. ĐIỀU KHIỂN VẬN HÀNH =====
 function useDevice() {
-    if(!currentDevice) return alert("⚠️ Quét mã QR trước!");
+    if(!currentDevice) return alert("⚠️ Vui lòng quét mã QR trước!");
     let nameInput = document.getElementById("user-name");
-    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập định danh người dùng:");
+    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên người sử dụng:");
     
     if(!name) return;
     
     let d = devices[currentDevice];
-    if(d.status === "Đang sử dụng") return alert("❌ Thiết bị đang trong phiên vận hành!");
+    if(d.status === "Đang sử dụng") return alert("❌ Thiết bị này đang có người sử dụng!");
     
     d.status = "Đang sử dụng"; 
     d.user = name; 
@@ -121,8 +121,8 @@ function stopDevice() {
 }
 
 function errorDevice() {
-    if(!currentDevice) return alert("⚠️ Quét QR mã máy!");
-    if(confirm("Xác nhận báo cáo sự cố kỹ thuật?")) {
+    if(!currentDevice) return alert("⚠️ Vui lòng quét QR thiết bị!");
+    if(confirm("Xác nhận báo cáo sự cố kỹ thuật cho máy này?")) {
         devices[currentDevice].status = "Bị hỏng";
         save(); 
         showDevice(currentDevice); 
@@ -130,7 +130,7 @@ function errorDevice() {
     }
 }
 
-// ===== 5. BIỂU ĐỒ (NEON) =====
+// ===== 5. BIỂU ĐỒ TRẠNG THÁI (NEON) =====
 function updateChart() {
     let u=0, f=0, b=0;
     Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
@@ -140,7 +140,7 @@ function updateChart() {
     chart = new Chart(ctx, {
         type: "doughnut",
         data: { 
-            labels: ["Dùng","Trống","Hỏng"], 
+            labels: ["Đang dùng","Trống","Bị hỏng"], 
             datasets: [{ 
                 data: [u,f,b], 
                 backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"],
@@ -172,7 +172,7 @@ checkUrl();
 updateChart();
 
 // ================================================================
-// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI & NHẬT KÝ (GIAO DIỆN MỚI) =====
+// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI & NHẬT KÝ (TIẾNG VIỆT) =====
 // ================================================================
 
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
@@ -182,7 +182,7 @@ function renderQueueInfo(id) {
     let q = queues[id] || [];
     if(q.length > 0) {
         let qHtml = `<div style="margin-top:15px; padding:12px; background:rgba(0,242,254,0.05); border-radius:15px; border:1px dashed var(--primary-neon);">
-            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📋 QUEUE LIST (${q.length}):</p>
+            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📋 DANH SÁCH CHỜ (${q.length}):</p>
             <p style="margin:5px 0 0 0; font-size:0.8em; color:rgba(255,255,255,0.8);">${q.map((item, index) => `${index+1}. ${item.userName}`).join(" | ")}</p>
         </div>`;
         document.getElementById("result").innerHTML += qHtml;
@@ -191,10 +191,10 @@ function renderQueueInfo(id) {
 
 function joinQueue() {
     if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị!");
-    let name = prompt("Nhập định danh để đăng ký hàng chờ:");
+    let name = prompt("Nhập tên để đăng ký hàng đợi:");
     if(!name) return;
     if(!queues[currentDevice]) queues[currentDevice] = [];
-    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Định danh đã tồn tại trong hàng chờ!");
+    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có tên trong danh sách chờ!");
     queues[currentDevice].push({ userName: name, time: new Date().toLocaleString() });
     saveQueue();
     alert("✅ Đăng ký hàng chờ thành công!");
@@ -203,9 +203,9 @@ function joinQueue() {
 
 function checkInFromQueue() {
     if(!currentDevice || !queues[currentDevice] || queues[currentDevice].length === 0) 
-        return alert("⚠️ Không có dữ liệu hàng chờ!");
+        return alert("⚠️ Không có ai trong danh sách chờ!");
     let nextUser = queues[currentDevice][0].userName;
-    if(confirm(`Xác nhận quyền vận hành cho: ${nextUser}?`)) {
+    if(confirm(`Xác nhận quyền sử dụng cho: ${nextUser}?`)) {
         queues[currentDevice].shift();
         saveQueue();
         let d = devices[currentDevice];
@@ -226,15 +226,15 @@ function showLogbook() {
         </tr>`).join("");
 
     document.getElementById("result").innerHTML = `
-        <h3 style="color:var(--primary-neon); text-transform:uppercase; letter-spacing:2px;">LAB LOGBOOK</h3>
+        <h3 style="color:var(--primary-neon); text-transform:uppercase; letter-spacing:2px;">NHẬT KÝ SỬ DỤNG</h3>
         <div style="max-height: 250px; overflow-y: auto;">
             <table style="width:100%; border-collapse:collapse; font-size:0.8em; text-align:left; color: white;">
-                <thead><tr style="background:rgba(255,255,255,0.1); color:var(--primary-neon);"><th style="padding:10px;">UNIT</th><th style="padding:10px;">USER</th><th style="padding:10px;">TIME</th></tr></thead>
+                <thead><tr style="background:rgba(255,255,255,0.1); color:var(--primary-neon);"><th style="padding:10px;">MÁY</th><th style="padding:10px;">NGƯỜI DÙNG</th><th style="padding:10px;">THỜI GIAN</th></tr></thead>
                 <tbody>${rows}</tbody>
             </table>
         </div>
-        <button onclick="downloadCSV()" style="margin-top:15px; background:var(--primary-neon); color:black; border:none; padding:12px; width:100%; border-radius:12px; font-weight:bold;">📥 EXPORT EXCEL (CSV)</button>
-        <button onclick="showDevice(currentDevice)" style="margin-top:10px; background:transparent; border:1px solid var(--glass-border); color:white; padding:10px; width:100%; border-radius:12px;">⬅ RETURN</button>
+        <button onclick="downloadCSV()" style="margin-top:15px; background:var(--primary-neon); color:black; border:none; padding:12px; width:100%; border-radius:12px; font-weight:bold;">📥 XUẤT FILE EXCEL (CSV)</button>
+        <button onclick="showDevice(currentDevice)" style="margin-top:10px; background:transparent; border:1px solid var(--glass-border); color:white; padding:10px; width:100%; border-radius:12px;">⬅ QUAY LẠI</button>
     `;
 }
 
@@ -245,6 +245,6 @@ function downloadCSV() {
     let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "LAB_LOGBOOK.csv";
+    link.download = "NHAT_KY_LAB.csv";
     link.click();
 }
