@@ -15,7 +15,6 @@
         .device-media { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 110px; }
         .device-img { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid #ddd; }
         
-        /* Hiệu ứng cho ô QR nhỏ */
         .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; border-radius: 8px; cursor: zoom-in; transition: 0.3s; }
         .device-qr:hover { transform: scale(1.05); border-color: #4a6cf7; }
         
@@ -24,13 +23,13 @@
         .fix { background: #2ecc71; color: white; width: 100%; margin-top: 10px; padding: 12px; border-radius: 12px; }
         .reset { background: #f39c12; color: white; width: 100%; margin-bottom: 10px; }
         .logout { background: #333; color: white; width: 100%; }
+        .export { background: #27ae60; color: white; width: 100%; margin-bottom: 10px; } /* Nút xuất Excel mới */
         .badge { padding: 4px 10px; border-radius: 8px; color: white; font-size: 12px; font-weight: bold; }
         .free { background: #2ecc71; }
         .using { background: #f1c40f; color: black; }
         .broken { background: #e74c3c; }
         #history-list { font-size: 14px; max-height: 250px; overflow-y: auto; }
 
-        /* ===== CSS CHO MODAL PHÓNG TO ===== */
         .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.85); justify-content: center; align-items: center; backdrop-filter: blur(5px); }
         .modal-content { background-color: white; padding: 25px; border-radius: 30px; text-align: center; max-width: 90%; animation: zoomIn 0.3s ease; }
         #big-qr img { width: 280px !important; height: 280px !important; margin: 0 auto; }
@@ -51,6 +50,7 @@
             <div id="list"></div>
         </div>
         <div class="card" style="text-align: center;">
+            <button class="export" onclick="exportFullHistory()">📊 Xuất Nhật ký (Excel)</button>
             <button class="reset" onclick="resetAll()">🔄 Reset tất cả trạng thái</button>
             <button class="logout" onclick="logout()">🚪 Đăng xuất</button>
         </div>
@@ -69,7 +69,6 @@
     <script>
         if(localStorage.getItem("role") !== "admin") location.href = "./login.html";
 
-        // Khởi tạo dữ liệu
         let devices = JSON.parse(localStorage.getItem("devices")) || {
             "TB001": { name: "Tủ sấy", status: "Trống", user: "", total: 0 },
             "TB002": { name: "Thiết bị thí nghiệm hằn lún vết bánh xe", status: "Trống", user: "", total: 0 },
@@ -88,13 +87,20 @@
         function render() {
             let keyword = document.getElementById("search").value.toLowerCase();
             let listDiv = document.getElementById("list"); listDiv.innerHTML = "";
+            let queues = JSON.parse(localStorage.getItem("queues")) || {}; // Lấy dữ liệu hàng đợi
+
             Object.entries(devices).forEach(([id, d]) => {
                 if (!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)) return;
                 let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
+                
+                // Kiểm tra xem máy có ai đang chờ không
+                let qCount = queues[id] ? queues[id].length : 0;
+                let queueHtml = qCount > 0 ? `<br><small style="color:#e67e22">⏳ Đang chờ: <b>${qCount} người</b></small>` : "";
+
                 let devEl = document.createElement("div"); devEl.className = "device";
                 devEl.innerHTML = `
                     <div class="device-info">
-                        <b>${d.name}</b> (${id})<br>
+                        <b>${d.name}</b> (${id})${queueHtml}<br>
                         <span class="badge ${color}">${d.status}</span><br>
                         <small>ND: <b>${d.user || "Trống"}</b> | Tổng: ${formatTime(d.total)}</small><br>
                         <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
@@ -109,32 +115,22 @@
             });
         }
 
-        // HÀM PHÓNG TO QR
         function zoomQR(id, name) {
             document.getElementById("modal-name").innerText = name + " (" + id + ")";
             const bigQrDiv = document.getElementById("big-qr");
-            bigQrDiv.innerHTML = ""; // Xóa nội dung cũ
-            
+            bigQrDiv.innerHTML = "";
             let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
             new QRCode(bigQrDiv, { text: qrUrl, width: 280, height: 280 });
-            
             document.getElementById("qrModal").style.display = "flex";
         }
 
-        function closeQR() {
-            document.getElementById("qrModal").style.display = "none";
-        }
+        function closeQR() { document.getElementById("qrModal").style.display = "none"; }
 
         function renderHistory() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
             let historyDiv = document.getElementById("history-list");
             if (!historyDiv) return;
-
-            if (history.length === 0) {
-                historyDiv.innerHTML = "Chưa có dữ liệu lịch sử.";
-                return;
-            }
-
+            if (history.length === 0) { historyDiv.innerHTML = "Chưa có dữ liệu lịch sử."; return; }
             historyDiv.innerHTML = history.slice(-10).reverse().map(h => 
                 `<div style="font-size:13px; border-bottom:1px solid #eee; padding:8px 0; color:#333;">
                     <b style="color:#4a6cf7;">${h.device}</b> - 👤 ${h.user}<br>
@@ -164,26 +160,37 @@
                     devices[id].total=0; 
                 }); 
                 localStorage.removeItem("history"); 
+                localStorage.removeItem("queues"); // Reset luôn cả hàng đợi
                 save(); 
             } 
         }
 
         function logout() { localStorage.removeItem("role"); location.href = "./login.html"; }
+
+        // MỚI: Hàm xuất lịch sử ra file Excel (CSV) cho Admin
+        function exportFullHistory() {
+            let history = JSON.parse(localStorage.getItem("history")) || [];
+            if(history.length === 0) return alert("Không có dữ liệu nhật ký!");
+            let csv = "\uFEFFThiết bị,Người dùng,Thời gian sử dụng,Ngày tháng\n";
+            history.forEach(h => { csv += `${h.device},${h.user},${h.duration},${h.time}\n`; });
+            let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            let link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `Bao_cao_Lab_${new Date().toLocaleDateString()}.csv`;
+            link.click();
+        }
         
-        // Lắng nghe thay đổi từ trang User (Điện thoại)
         window.addEventListener("storage", (e) => { 
-            if (e.key === "devices" || e.key === "history") {
+            if (e.key === "devices" || e.key === "history" || e.key === "queues") {
                 devices = JSON.parse(localStorage.getItem("devices")); 
                 render(); 
                 renderHistory(); 
             }
         });
         
-        // Khởi chạy
         render(); 
         renderHistory();
         
-        // Cập nhật lại lịch sử và danh sách mỗi 2 giây để hiện người dùng mới nhất
         setInterval(() => {
             devices = JSON.parse(localStorage.getItem("devices"));
             render();
