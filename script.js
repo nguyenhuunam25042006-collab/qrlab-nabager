@@ -19,7 +19,7 @@ let devices = JSON.parse(localStorage.getItem("devices")) || {
 function save() { localStorage.setItem("devices", JSON.stringify(devices)); }
 function formatTime(ms) { let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
 
-// ===== 2. HÀM QUÉT QR (ĐÃ THÊM TÍNH NĂNG NHẬP TAY KHI LỖI) =====
+// ===== 2. HÀM QUÉT QR (CÔNG NGHỆ) =====
 function startScan() {
     if(typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
     const reader = document.getElementById("reader");
@@ -43,11 +43,8 @@ function startScan() {
                 }
 
                 if (!devices[foundId]) {
-                    console.log("Dữ liệu QR lạ:", rawText);
-                    let manualId = prompt("❌ Không nhận diện được máy!\nVui lòng nhập ID thủ công (Ví dụ: TB001):");
-                    if (manualId) {
-                        foundId = manualId.toUpperCase().trim();
-                    }
+                    let manualId = prompt("❌ Không nhận diện được máy!\nNhập ID thủ công (Ví dụ: TB001):");
+                    if (manualId) foundId = manualId.toUpperCase().trim();
                 }
 
                 if (devices[foundId]) {
@@ -60,38 +57,37 @@ function startScan() {
                 }
             });
         });
-    }).catch(err => alert("❌ Không mở được camera: " + err));
+    }).catch(err => alert("❌ Lỗi Camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ =====
+// ===== 3. HIỂN THỊ THIẾT BỊ (CYBER STYLE) =====
 function showDevice(id) {
     let d = devices[id];
-    let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
+    let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
     let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
 
     document.getElementById("result").innerHTML = `
-        <div style="text-align:center;">
-            <img src="images/${id}.jpg" style="width:180px; height:180px; object-fit:cover; border-radius:20px; margin-bottom:10px;" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
-            <h3>${d.name}</h3>
-            <span class="badge ${color}">${d.status}</span>
-            <p>👤 ND: <b>${d.user || "Chưa có"}</b></p>
-            <p style="font-size:1.4em; font-weight:bold; color:#4a6cf7;">${timeText}</p>
+        <div style="text-align:center; animation: fadeIn 0.5s ease;">
+            <img src="images/${id}.jpg" style="width:180px; height:180px; object-fit:cover; border-radius:20px; margin-bottom:10px; border: 2px solid var(--glass-border);" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+            <h3 style="color: var(--primary-neon); margin: 10px 0;">${d.name}</h3>
+            <span class="badge ${colorClass}">${d.status}</span>
+            <p style="margin-top:15px; font-size: 0.9em; color: rgba(255,255,255,0.7);">👤 OPERATOR: <b style="color: white;">${d.user || "VACANT"}</b></p>
+            <p style="font-size:1.6em; font-weight:bold; color: var(--primary-neon); text-shadow: 0 0 10px rgba(0,242,254,0.5);">${timeText}</p>
         </div>`;
     
-    // Phần mở rộng cho Hàng đợi (Sẽ được gọi tự động)
     renderQueueInfo(id);
 }
 
 // ===== 4. ĐIỀU KHIỂN =====
 function useDevice() {
-    if(!currentDevice) return alert("⚠️ Hãy quét QR!");
+    if(!currentDevice) return alert("⚠️ Quét mã QR trước!");
     let nameInput = document.getElementById("user-name");
-    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên người dùng:");
+    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập định danh người dùng:");
     
     if(!name) return;
     
     let d = devices[currentDevice];
-    if(d.status === "Đang sử dụng") return alert("❌ Máy này đang có người dùng!");
+    if(d.status === "Đang sử dụng") return alert("❌ Thiết bị đang trong phiên vận hành!");
     
     d.status = "Đang sử dụng"; 
     d.user = name; 
@@ -116,7 +112,6 @@ function stopDevice() {
         localStorage.setItem("history", JSON.stringify(history));
         d.total += used; 
         d.start = null;
-        alert("✅ Đã kết thúc! Thời gian dùng: " + formatTime(used));
     }
     d.status = "Trống"; 
     d.user = "";
@@ -126,8 +121,8 @@ function stopDevice() {
 }
 
 function errorDevice() {
-    if(!currentDevice) return alert("⚠️ Quét QR trước!");
-    if(confirm("Xác nhận báo hỏng thiết bị này?")) {
+    if(!currentDevice) return alert("⚠️ Quét QR mã máy!");
+    if(confirm("Xác nhận báo cáo sự cố kỹ thuật?")) {
         devices[currentDevice].status = "Bị hỏng";
         save(); 
         showDevice(currentDevice); 
@@ -135,7 +130,7 @@ function errorDevice() {
     }
 }
 
-// ===== 5. BIỂU ĐỒ =====
+// ===== 5. BIỂU ĐỒ (NEON) =====
 function updateChart() {
     let u=0, f=0, b=0;
     Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
@@ -146,9 +141,18 @@ function updateChart() {
         type: "doughnut",
         data: { 
             labels: ["Dùng","Trống","Hỏng"], 
-            datasets: [{ data: [u,f,b], backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"] }] 
+            datasets: [{ 
+                data: [u,f,b], 
+                backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"],
+                borderWidth: 0,
+                hoverOffset: 10
+            }] 
         },
-        options: { responsive: true, maintainAspectRatio: false }
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false,
+            plugins: { legend: { labels: { color: 'white' } } }
+        }
     });
 }
 
@@ -168,80 +172,72 @@ checkUrl();
 updateChart();
 
 // ================================================================
-// ===== PHẦN THÊM MỚI: TÍNH NĂNG 1 & 2 (KHÔNG SỬA CODE CŨ) =====
+// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI & NHẬT KÝ (GIAO DIỆN MỚI) =====
 // ================================================================
 
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
 function saveQueue() { localStorage.setItem("queues", JSON.stringify(queues)); }
 
-// Hàm hiển thị danh sách chờ dưới thông tin thiết bị
 function renderQueueInfo(id) {
     let q = queues[id] || [];
     if(q.length > 0) {
-        let qHtml = `<div style="margin-top:10px; padding:10px; background:#f8f9fa; border-radius:10px; border:1px dashed #4a6cf7;">
-            <p style="margin:0; font-size:0.9em; color:#4a6cf7; font-weight:bold;">📋 Danh sách chờ (${q.length}):</p>
-            <p style="margin:5px 0 0 0; font-size:0.85em;">${q.map((item, index) => `${index+1}. ${item.userName}`).join(" | ")}</p>
+        let qHtml = `<div style="margin-top:15px; padding:12px; background:rgba(0,242,254,0.05); border-radius:15px; border:1px dashed var(--primary-neon);">
+            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📋 QUEUE LIST (${q.length}):</p>
+            <p style="margin:5px 0 0 0; font-size:0.8em; color:rgba(255,255,255,0.8);">${q.map((item, index) => `${index+1}. ${item.userName}`).join(" | ")}</p>
         </div>`;
         document.getElementById("result").innerHTML += qHtml;
     }
 }
 
-// 1. Hàm Đặt chỗ (Join Queue)
 function joinQueue() {
-    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị trước!");
-    let name = prompt("Nhập tên của bạn để đăng ký hàng đợi:");
+    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị!");
+    let name = prompt("Nhập định danh để đăng ký hàng chờ:");
     if(!name) return;
-
     if(!queues[currentDevice]) queues[currentDevice] = [];
-    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có trong danh sách!");
-
+    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Định danh đã tồn tại trong hàng chờ!");
     queues[currentDevice].push({ userName: name, time: new Date().toLocaleString() });
     saveQueue();
-    alert("✅ Đã thêm vào hàng đợi!");
+    alert("✅ Đăng ký hàng chờ thành công!");
     showDevice(currentDevice);
 }
 
-// 2. Hàm Check-in cho người chờ
 function checkInFromQueue() {
     if(!currentDevice || !queues[currentDevice] || queues[currentDevice].length === 0) 
-        return alert("⚠️ Không có ai trong danh sách chờ!");
-
+        return alert("⚠️ Không có dữ liệu hàng chờ!");
     let nextUser = queues[currentDevice][0].userName;
-    if(confirm(`Xác nhận cho ${nextUser} bắt đầu sử dụng?`)) {
+    if(confirm(`Xác nhận quyền vận hành cho: ${nextUser}?`)) {
         queues[currentDevice].shift();
         saveQueue();
-        
-        // Ghi đè tạm thời để useDevice dùng tên này
         let d = devices[currentDevice];
         d.status = "Đang sử dụng"; d.user = nextUser; d.start = Date.now();
         save(); showDevice(currentDevice); updateChart();
     }
 }
 
-// 3. Hàm hiển thị Nhật ký (Logbook)
 function showLogbook() {
     let history = JSON.parse(localStorage.getItem("history")) || [];
-    if(history.length === 0) return alert("Chưa có nhật ký nào!");
+    if(history.length === 0) return alert("Nhật ký trống!");
 
     let rows = history.slice().reverse().map(h => `
-        <tr style="border-bottom:1px solid #eee;">
-            <td style="padding:8px;">${h.device}</td>
-            <td style="padding:8px;">${h.user}</td>
-            <td style="padding:8px;">${h.duration}</td>
+        <tr style="border-bottom:1px solid var(--glass-border);">
+            <td style="padding:10px;">${h.device}</td>
+            <td style="padding:10px;">${h.user}</td>
+            <td style="padding:10px; color:var(--primary-neon);">${h.duration}</td>
         </tr>`).join("");
 
     document.getElementById("result").innerHTML = `
-        <h3>Nhật ký Lab</h3>
-        <table style="width:100%; border-collapse:collapse; font-size:0.8em; text-align:left;">
-            <thead><tr style="background:#4a6cf7; color:#fff;"><th style="padding:8px;">Máy</th><th style="padding:8px;">Người dùng</th><th style="padding:8px;">Dùng</th></tr></thead>
-            <tbody>${rows}</tbody>
-        </table>
-        <button onclick="downloadCSV()" style="margin-top:10px; background:#27ae60; color:white; border:none; padding:10px; width:100%; border-radius:5px;">Xuất file Excel (CSV)</button>
-        <button onclick="showDevice(currentDevice)" style="margin-top:5px; background:#95a5a6; color:white; border:none; padding:10px; width:100%; border-radius:5px;">Quay lại</button>
+        <h3 style="color:var(--primary-neon); text-transform:uppercase; letter-spacing:2px;">LAB LOGBOOK</h3>
+        <div style="max-height: 250px; overflow-y: auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.8em; text-align:left; color: white;">
+                <thead><tr style="background:rgba(255,255,255,0.1); color:var(--primary-neon);"><th style="padding:10px;">UNIT</th><th style="padding:10px;">USER</th><th style="padding:10px;">TIME</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table>
+        </div>
+        <button onclick="downloadCSV()" style="margin-top:15px; background:var(--primary-neon); color:black; border:none; padding:12px; width:100%; border-radius:12px; font-weight:bold;">📥 EXPORT EXCEL (CSV)</button>
+        <button onclick="showDevice(currentDevice)" style="margin-top:10px; background:transparent; border:1px solid var(--glass-border); color:white; padding:10px; width:100%; border-radius:12px;">⬅ RETURN</button>
     `;
 }
 
-// 4. Hàm xuất CSV
 function downloadCSV() {
     let history = JSON.parse(localStorage.getItem("history")) || [];
     let csv = "\uFEFFThiết bị,Người dùng,Thời gian,Thời lượng\n";
@@ -249,6 +245,6 @@ function downloadCSV() {
     let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
     let link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "nhat_ky_lab.csv";
+    link.download = "LAB_LOGBOOK.csv";
     link.click();
 }
