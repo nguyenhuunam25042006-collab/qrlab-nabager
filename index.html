@@ -81,8 +81,11 @@
 
         #btn-scan { background: #4a6cf7; }  /* Xanh dương */
         #btn-use { background: #2ecc71; }   /* Xanh lá */
+        #btn-queue { background: #34495e; } /* Xanh đậm (Nút Hàng đợi) */
+        #btn-checkin { background: #8e44ad; } /* Tím (Nút Check-in) */
         #btn-stop { background: #f39c12; }  /* Cam */
         #btn-error { background: #e74c3c; } /* Đỏ */
+        #btn-log { background: #95a5a6; margin-top: 15px; } /* Xám (Nút Nhật ký) */
 
         input {
             width: 100%;
@@ -115,6 +118,10 @@
         .free { background: #2ecc71; }
         .using { background: #f1c40f; color: black; }
         .broken { background: #e74c3c; }
+
+        /* Bảng nhật ký */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
     </style>
 </head>
 <body>
@@ -126,7 +133,8 @@
         </div>
 
         <div class="card">
-            <div id="reader"></div> <div id="result">
+            <div id="reader"></div> 
+            <div id="result">
                 <p style="color: #999;">Quét mã trên máy để bắt đầu</p>
             </div>
 
@@ -134,9 +142,17 @@
             
             <input id="user-name" placeholder="Nhập tên người dùng...">
             
-            <button id="btn-use" onclick="useDevice()">📅 Sử dụng</button>
+            <button id="btn-use" onclick="useDevice()">📅 Sử dụng ngay</button>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button id="btn-queue" onclick="joinQueue()" style="font-size: 14px;">📝 Đặt chỗ</button>
+                <button id="btn-checkin" onclick="checkInFromQueue()" style="font-size: 14px;">✅ Check-in</button>
+            </div>
+            
             <button id="btn-stop" onclick="stopDevice()">⏹ Kết thúc</button>
             <button id="btn-error" onclick="errorDevice()">⚠️ Báo lỗi</button>
+            
+            <button id="btn-log" onclick="showLogbook()">📋 Xem Nhật ký Lab</button>
         </div>
 
         <div class="card">
