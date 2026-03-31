@@ -22,7 +22,7 @@ const deviceManuals = {
     "TB007": { usage: "Đo độ nhớt để xác định nhiệt độ trộn và rải tối ưu ngoài công trường.", manual: "Lựa chọn kim đo phù hợp, cài đặt tốc độ quay và nhiệt độ thử." },
     "TB008": { usage: "Đánh giá mức độ lão hóa của nhựa đường dưới tác động nhiệt.", manual: "Cân mẫu trước/sau khi sấy trong bình xoay nhiệt độ cao." },
     "TB009": { usage: "Cắt mẫu bê tông lớn thành các mẫu thử chuẩn hình khối/trụ.", manual: "Cố định mẫu chặt, sử dụng nước làm mát lưỡi cắt liên tục." },
-    "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn.", manual: "Kiểm tra mực nước và nhiệt độ bể bảo dưỡng hàng ngày (27±2°C)." }
+    "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn.", manual: "Kiểm tra mực nước và nhiệt độ bể bảo dưỡng ngày (27±2°C)." }
 };
 
 // ===== 1. DỮ LIỆU THIẾT BỊ (Nên có khung mặc định để tránh lỗi undefined) =====
@@ -114,7 +114,6 @@ function showDevice(id) {
     const resultDiv = document.getElementById("result");
     if(!resultDiv) return;
 
-    // Lấy thông tin công dụng từ kho dữ liệu
     const info = deviceManuals[id] || { usage: "Đang cập nhật...", manual: "Liên hệ cán bộ phòng Lab." };
 
     resultDiv.innerHTML = `
@@ -235,7 +234,7 @@ setInterval(() => {
 checkUrl();
 updateChart();
 
-// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI =====
+// ===== PHẦN MỞ RỘNG: LỊCH ĐĂNG KÝ (ĐÃ ĐỒNG BỘ CLOUD ĐỂ BÁO ADMIN) =====
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
 db.ref('queues').on('value', (snapshot) => {
     if(snapshot.val()) {
@@ -247,15 +246,15 @@ db.ref('queues').on('value', (snapshot) => {
 
 function saveQueue() { 
     localStorage.setItem("queues", JSON.stringify(queues)); 
-    db.ref('queues').set(queues);
+    db.ref('queues').set(queues); // Đẩy lên Cloud báo Admin
 }
 
 function renderQueueInfo(id) {
     let q = queues[id] || [];
     if(q.length > 0) {
         let qHtml = `<div style="margin-top:15px; padding:12px; background:rgba(0,242,254,0.05); border-radius:15px; border:1px dashed var(--primary-neon);">
-            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📋 DANH SÁCH CHỜ (${q.length}):</p>
-            <p style="margin:5px 0 0 0; font-size:0.8em; color:rgba(255,255,255,0.8);">${q.map((item, index) => `${index+1}. ${item.userName}`).join(" | ")}</p>
+            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📅 LỊCH ĐĂNG KÝ TIẾP THEO (${q.length}):</p>
+            <p style="margin:5px 0 0 0; font-size:0.8em; color:rgba(255,255,255,0.8);">${q.map((item, index) => `<b>${item.userName}</b> (${item.time})`).join(" ➔ ")}</p>
         </div>`;
         const resultDiv = document.getElementById("result");
         if(resultDiv) resultDiv.innerHTML += qHtml;
@@ -263,19 +262,27 @@ function renderQueueInfo(id) {
 }
 
 function joinQueue() {
-    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị!");
-    let name = prompt("Nhập tên để đăng ký hàng đợi:");
+    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị để đăng ký lịch!");
+    let nameInput = document.getElementById("user-name");
+    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên để đăng ký lịch sử dụng:");
+    
     if(!name) return;
     if(!queues[currentDevice]) queues[currentDevice] = [];
-    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có tên trong danh sách chờ!");
-    queues[currentDevice].push({ userName: name, time: new Date().toLocaleString() });
+    if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có tên trong danh sách đăng ký của máy này!");
+    
+    queues[currentDevice].push({ 
+        userName: name, 
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) 
+    });
+    
     saveQueue();
-    alert("✅ Đăng ký hàng chờ thành công!");
+    alert(`✅ Đã ghi nhận lịch sử dụng cho: ${name}`);
+    showDevice(currentDevice);
 }
 
 function checkInFromQueue() {
     if(!currentDevice || !queues[currentDevice] || queues[currentDevice].length === 0) 
-        return alert("⚠️ Không có ai trong danh sách chờ!");
+        return alert("⚠️ Không có ai trong lịch đăng ký!");
     let nextUser = queues[currentDevice][0].userName;
     if(confirm(`Xác nhận quyền sử dụng cho: ${nextUser}?`)) {
         queues[currentDevice].shift();
