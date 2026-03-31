@@ -37,11 +37,35 @@
         .modal-content { background-color: #ffffff; padding: 25px; border-radius: 20px; text-align: center; max-width: 90%; animation: zoomIn 0.3s ease; color: #333; }
         #big-qr img { width: 280px !important; height: 280px !important; margin: 0 auto; }
         .close-btn { margin-top: 20px; background: #000; color: white; width: 100%; padding: 12px; border-radius: 10px; }
+        
+        /* CSS MỚI CHO BẢNG GHI DỮ LIỆU ĐẶT LỊCH */
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; color: #fff; font-size: 13px; }
+        th { text-align: left; padding: 10px; color: #f39c12; border-bottom: 1px solid rgba(243, 156, 18, 0.2); }
+        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">HỆ THỐNG QUẢN TRỊ VIÊN</div>
+
+        <div class="card" style="border-color: #f39c12;">
+            <h3 style="color: #f39c12;">📋 BẢNG GHI DỮ LIỆU NGƯỜI ĐĂNG KÝ</h3>
+            <div id="booking-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>THIẾT BỊ</th>
+                            <th>NGƯỜI DÙNG</th>
+                            <th>LỊCH ĐẶT</th>
+                            <th>DỰ KIẾN</th>
+                        </tr>
+                    </thead>
+                    <tbody id="booking-table-content">
+                        <tr><td colspan="4" style="text-align:center;">Đang tải dữ liệu lịch...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
         
         <div class="card">
             <h3>🕒 LỊCH SỬ SỬ DỤNG (10 HOẠT ĐỘNG GẦN NHẤT)</h3>
@@ -75,22 +99,33 @@
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
 
     <script>
-        // === 0. CẤU HÌNH FIREBASE (CHÈN THÊM) ===
+        // === 0. CẤU HÌNH FIREBASE ===
         const firebaseConfig = {
             databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com"
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.database();
 
+        // KHO DỮ LIỆU CÔNG DỤNG (DÀNH CHO BÁO CÁO)
+        const deviceManuals = {
+            "TB001": { usage: "Sấy khô cốt liệu, mẫu và dụng cụ." },
+            "TB002": { usage: "Đánh giá kháng lún mặt đường nhựa." },
+            "TB003": { usage: "Xác định độ ổn định Marshall bê tông nhựa." },
+            "TB004": { usage: "Chế tạo mẫu chuẩn bằng đầm va đập." },
+            "TB005": { usage: "Xác định hàm lượng sáp trong nhựa." },
+            "TB006": { usage: "Đo độ dẻo và khả năng kết dính nhựa." },
+            "TB007": { usage: "Đo độ nhớt xác định nhiệt độ rải tối ưu." },
+            "TB008": { usage: "Đánh giá lão hóa nhựa dưới nhiệt độ." },
+            "TB009": { usage: "Cắt mẫu bê tông khối chuẩn thí nghiệm." },
+            "TB010": { usage: "Bảo dưỡng mẫu bê tông trong môi trường ẩm." }
+        };
+
         if(localStorage.getItem("role") !== "admin") location.href = "./login.html";
 
-        // LẮNG NGHE DỮ LIỆU TỪ CLOUD (THAY CHO SETINTERVAL)
+        // LẮNG NGHE DỮ LIỆU
         db.ref('devices').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data) {
-                devices = data; 
-                render();
-            }
+            if (data) { devices = data; render(); }
         });
 
         db.ref('history').on('value', (snapshot) => {
@@ -101,7 +136,16 @@
             }
         });
 
-        // GIỮ NGUYÊN DỮ LIỆU GỐC CỦA BẠN
+        // MỚI: Lắng nghe hàng đợi từ Cloud
+        db.ref('queues').on('value', (snapshot) => {
+            const queueData = snapshot.val();
+            if (queueData) {
+                localStorage.setItem("queues", JSON.stringify(queueData));
+                render(); 
+                renderBookingTable(); // Cập nhật bảng tổng hợp
+            }
+        });
+
         let devices = {
             "TB001": { name: "Tủ sấy", status: "Trống", user: "", total: 0 },
             "TB002": { name: "Hằn lún vết bánh xe", status: "Trống", user: "", total: 0 },
@@ -117,6 +161,7 @@
 
         function formatTime(ms) { if(!ms) return "0p 0s"; let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
 
+        // CẬP NHẬT HÀM RENDER (THÊM HIỂN THỊ ĐẶT LỊCH TRÊN TỪNG MÁY)
         function render() {
             let keyword = document.getElementById("search").value.toLowerCase();
             let listDiv = document.getElementById("list"); listDiv.innerHTML = "";
@@ -126,25 +171,40 @@
                 if (!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)) return;
                 let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
                 
-                let qCount = queues[id] ? queues[id].length : 0;
-                let queueHtml = qCount > 0 ? `<br><small style="color:#e67e22">⏳ ĐANG CHỜ: <b>${qCount} NGƯỜI</b></small>` : "";
+                let q = queues[id] || [];
+                let queueHtml = q.length > 0 ? `<div style="margin-top:5px; background:rgba(243,156,18,0.1); padding:5px; border-radius:8px;"><small style="color:#f39c12; font-weight:bold;">📅 ĐẶT TRƯỚC: ${q.length} NGƯỜI</small><br><small style="font-size:10px;">➔ ${q[0].userName}: ${q[0].bookTime}</small></div>` : "";
 
                 let devEl = document.createElement("div"); devEl.className = "device";
                 devEl.innerHTML = `
                     <div class="device-info">
-                        <b>${d.name}</b> (${id})${queueHtml}<br>
+                        <b>${d.name}</b> (${id})
+                        ${queueHtml}
+                        <p style="margin:4px 0; font-size:11px; color:#888;">${deviceManuals[id]?.usage || ""}</p>
                         <span class="badge ${color}">${d.status}</span><br>
-                        <small>NGƯỜI DÙNG: <b>${d.user || "TRỐNG"}</b> | TỔNG GIỜ: ${formatTime(d.total)}</small><br>
+                        <small>ND: <b>${d.user || "TRỐNG"}</b> | TỔNG: ${formatTime(d.total)}</small><br>
                         <button class="fix" onclick="fix('${id}')">✔ RESET MÁY</button>
                     </div>
                     <div class="device-media">
                         <img src="images/${id}.jpg" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
-                        <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')" title="Phóng to"></div>
+                        <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')"></div>
                     </div>`;
                 listDiv.appendChild(devEl);
                 let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
                 new QRCode(document.getElementById(`qr-${id}`), { text: qrUrl, width: 100, height: 100 });
             });
+        }
+
+        // HÀM MỚI: RENDER BẢNG TỔNG HỢP CHO ADMIN
+        function renderBookingTable() {
+            let queues = JSON.parse(localStorage.getItem("queues")) || {};
+            let tableBody = document.getElementById("booking-table-content");
+            if (!tableBody) return;
+            let all = [];
+            Object.entries(queues).forEach(([id, list]) => {
+                list.forEach(item => { all.push({ name: devices[id]?.name || id, user: item.userName, time: item.bookTime, est: item.estimated }); });
+            });
+            if (all.length === 0) { tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Chưa có lịch đặt</td></tr>"; return; }
+            tableBody.innerHTML = all.map(b => `<tr><td style="color:#f39c12;">${b.name}</td><td>${b.user}</td><td style="color:#2ecc71;">${b.time}</td><td>${b.est}</td></tr>`).join("");
         }
 
         function zoomQR(id, name) {
@@ -161,42 +221,22 @@
         function renderHistory() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
             let historyDiv = document.getElementById("history-list");
-            if (!historyDiv) return;
-            if (history.length === 0) { historyDiv.innerHTML = "Chưa có dữ liệu lịch sử."; return; }
-            historyDiv.innerHTML = history.slice(-10).reverse().map(h => 
-                `<div style="font-size:12px; border-bottom:1px solid var(--glass-border); padding:8px 0;">
-                    <b style="color:var(--admin-neon);">${h.device}</b> - 👤 ${h.user}<br>
-                    <small>⏱ THỜI GIAN DÙNG: ${h.duration} | 📅 NGÀY: ${h.time}</small>
-                </div>`
-            ).join("");
+            if (!historyDiv || history.length === 0) return;
+            historyDiv.innerHTML = history.slice(-10).reverse().map(h => `<div style="font-size:12px; border-bottom:1px solid var(--glass-border); padding:8px 0;"><b style="color:var(--admin-neon);">${h.device}</b> - 👤 ${h.user}<br><small>⏱ ${h.duration} | 📅 ${h.time}</small></div>`).join("");
         }
 
-        // SỬA HÀM SAVE ĐỂ ĐẨY LÊN CLOUD (CHÈN THÊM)
         function save() { 
             localStorage.setItem("devices", JSON.stringify(devices)); 
-            db.ref('devices').set(devices); // Đẩy lên Cloud
-            render(); 
-            renderHistory(); 
+            db.ref('devices').set(devices); 
+            render(); renderHistory(); 
         }
         
-        function fix(id) { 
-            devices[id].status = "Trống"; 
-            devices[id].user = ""; 
-            devices[id].start = null; 
-            save(); 
-        }
+        function fix(id) { devices[id].status = "Trống"; devices[id].user = ""; devices[id].start = null; save(); }
         
         function resetAll() { 
             if(confirm("Xác nhận reset toàn bộ hệ thống?")) { 
-                Object.keys(devices).forEach(id => { 
-                    devices[id].status="Trống"; 
-                    devices[id].user="";
-                    devices[id].total=0; 
-                }); 
-                localStorage.removeItem("history"); 
-                localStorage.removeItem("queues");
-                db.ref('/').set({ devices: devices }); // Reset Cloud
-                save(); 
+                Object.keys(devices).forEach(id => { devices[id].status="Trống"; devices[id].user=""; devices[id].total=0; }); 
+                db.ref('/').set({ devices: devices }); save(); 
             } 
         }
 
@@ -204,27 +244,19 @@
 
         function exportFullHistory() {
             let history = JSON.parse(localStorage.getItem("history")) || [];
-            if(history.length === 0) return alert("Không có nhật ký để xuất!");
+            if(history.length === 0) return alert("Không có nhật ký!");
             let csv = "\uFEFFThiết bị,Người dùng,Thời gian sử dụng,Ngày tháng\n";
             history.forEach(h => { csv += `${h.device},${h.user},${h.duration},${h.time}\n`; });
             let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             let link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `Nhat_Ky_Lab_${new Date().toLocaleDateString()}.csv`;
+            link.download = `Nhat_Ky_Lab.csv`;
             link.click();
         }
+
+        window.addEventListener("storage", (e) => { if (e.key === "devices" || e.key === "history" || e.key === "queues") { devices = JSON.parse(localStorage.getItem("devices")); render(); renderHistory(); renderBookingTable(); } });
         
-        // GIỮ NGUYÊN EVENT STORAGE
-        window.addEventListener("storage", (e) => { 
-            if (e.key === "devices" || e.key === "history" || e.key === "queues") {
-                devices = JSON.parse(localStorage.getItem("devices")); 
-                render(); 
-                renderHistory(); 
-            }
-        });
-        
-        render(); 
-        renderHistory();
+        render(); renderHistory(); renderBookingTable();
     </script>
 </body>
 </html>
