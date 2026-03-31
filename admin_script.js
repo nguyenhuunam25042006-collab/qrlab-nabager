@@ -41,7 +41,7 @@ db.ref('history').on('value', (snapshot) => {
     }
 });
 
-// MỚI: Lắng nghe lịch đặt trước (queues) từ Cloud
+// MỚI CẬP NHẬT: Lắng nghe lịch đặt trước (queues) từ Cloud để báo Admin ngay lập tức
 db.ref('queues').on('value', (snapshot) => {
     const queueData = snapshot.val();
     if (queueData) {
