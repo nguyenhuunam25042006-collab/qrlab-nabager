@@ -1,8 +1,7 @@
-// ===== 0. CẤU HÌNH FIREBASE (MỚI THÊM) =====
+// ===== 0. CẤU HÌNH FIREBASE =====
 const firebaseConfig = {
     databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com"
 };
-// Khởi tạo Firebase nếu chưa có
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
@@ -12,31 +11,48 @@ let scanner = null;
 let currentDevice = "";
 let chart = null;
 
-// ===== 1. DỮ LIỆU 10 THIẾT BỊ (SỬA ĐỂ LẤY TỪ CLOUD) =====
-let devices = {};
+// ===== 1. DỮ LIỆU THIẾT BỊ (Nên có khung mặc định để tránh lỗi undefined) =====
+let devices = JSON.parse(localStorage.getItem("devices")) || {
+    "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
+    "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
+    "TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
+    "TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
+    "TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
+    "TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
+    "TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
+    "TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
+    "TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
+    "TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
+};
 
-// LẮNG NGHE DỮ LIỆU TỪ CLOUD (THAY CHO LOCALSTORAGE)
+// LẮNG NGHE DỮ LIỆU TỪ CLOUD
 db.ref('devices').on('value', (snapshot) => {
     const data = snapshot.val();
     if (data) {
         devices = data;
+        localStorage.setItem("devices", JSON.stringify(devices));
+        // Nếu đang ở màn hình thiết bị nào đó thì cập nhật lại thông tin hiển thị ngay
         if (currentDevice) showDevice(currentDevice);
         updateChart();
     }
 });
 
 function save() { 
-    // Vừa lưu Local (cho chắc) vừa đẩy lên Cloud
     localStorage.setItem("devices", JSON.stringify(devices)); 
     db.ref('devices').set(devices);
 }
 
-function formatTime(ms) { let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
+function formatTime(ms) { 
+    if(!ms || ms < 0) return "0p 0s";
+    let s = Math.floor(ms/1000); 
+    return Math.floor(s/60) + "p " + (s % 60) + "s"; 
+}
 
 // ===== 2. HÀM QUÉT QR (GIỮ NGUYÊN) =====
 function startScan() {
     if(typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
     const reader = document.getElementById("reader");
+    if(!reader) return;
     reader.innerHTML = "";
     if(scanner) scanner.stop().then(()=>scanner.clear()).catch(()=>{});
     scanner = new Html5Qrcode("reader");
@@ -74,14 +90,19 @@ function startScan() {
     }).catch(err => alert("❌ Lỗi Camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ (GIỮ NGUYÊN) =====
+// ===== 3. HIỂN THỊ THIẾT BỊ (TỐI ƯU CẬP NHẬT) =====
 function showDevice(id) {
     let d = devices[id];
     if(!d) return;
     let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
+    
+    // Tính toán thời gian thực nếu đang sử dụng
     let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
 
-    document.getElementById("result").innerHTML = `
+    const resultDiv = document.getElementById("result");
+    if(!resultDiv) return;
+
+    resultDiv.innerHTML = `
         <div style="text-align:center; animation: fadeIn 0.5s ease;">
             <img src="images/${id}.jpg" style="width:180px; height:180px; object-fit:cover; border-radius:20px; margin-bottom:10px; border: 2px solid var(--glass-border);" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
             <h3 style="color: var(--primary-neon); margin: 10px 0;">${d.name}</h3>
@@ -93,7 +114,7 @@ function showDevice(id) {
     renderQueueInfo(id);
 }
 
-// ===== 4. ĐIỀU KHIỂN VẬN HÀNH (GIỮ NGUYÊN NHƯNG SAVE() SẼ ĐẨY LÊN CLOUD) =====
+// ===== 4. ĐIỀU KHIỂN VẬN HÀNH =====
 function useDevice() {
     if(!currentDevice) return alert("⚠️ Vui lòng quét mã QR trước!");
     let nameInput = document.getElementById("user-name");
@@ -103,18 +124,19 @@ function useDevice() {
     
     let d = devices[currentDevice];
     if(d.status === "Đang sử dụng") return alert("❌ Thiết bị này đang có người sử dụng!");
+    if(d.status === "Bị hỏng") return alert("❌ Thiết bị đang hỏng, không thể sử dụng!");
     
     d.status = "Đang sử dụng"; 
     d.user = name; 
     d.start = Date.now();
-    save(); // Tự động đẩy lên Cloud
-    showDevice(currentDevice); 
-    updateChart();
+    save(); 
 }
 
 function stopDevice() {
     if(!currentDevice) return;
     let d = devices[currentDevice];
+    if(d.status !== "Đang sử dụng") return;
+
     if(d.start) {
         let used = Date.now() - d.start;
         let history = JSON.parse(localStorage.getItem("history")) || [];
@@ -125,7 +147,6 @@ function stopDevice() {
             duration: formatTime(used) 
         });
         localStorage.setItem("history", JSON.stringify(history));
-        // Đẩy cả lịch sử lên Cloud để Admin thấy
         db.ref('history').set(history);
 
         d.total += used; 
@@ -134,8 +155,6 @@ function stopDevice() {
     d.status = "Trống"; 
     d.user = "";
     save(); 
-    showDevice(currentDevice); 
-    updateChart();
 }
 
 function errorDevice() {
@@ -143,18 +162,22 @@ function errorDevice() {
     if(confirm("Xác nhận báo cáo sự cố kỹ thuật cho máy này?")) {
         devices[currentDevice].status = "Bị hỏng";
         save(); 
-        showDevice(currentDevice); 
-        updateChart();
     }
 }
 
-// ===== 5. BIỂU ĐỒ TRẠNG THÁI (GIỮ NGUYÊN) =====
+// ===== 5. BIỂU ĐỒ TRẠNG THÁI =====
 function updateChart() {
     let u=0, f=0, b=0;
-    Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
-    if(chart) chart.destroy();
+    Object.values(devices).forEach(d => { 
+        if(d.status==="Đang sử dụng") u++; 
+        else if(d.status==="Bị hỏng") b++; 
+        else f++; 
+    });
+    
     let ctx = document.getElementById("chart");
     if(!ctx) return;
+
+    if(chart) chart.destroy();
     chart = new Chart(ctx, {
         type: "doughnut",
         data: { 
@@ -162,8 +185,7 @@ function updateChart() {
             datasets: [{ 
                 data: [u,f,b], 
                 backgroundColor: ["#f1c40f", "#2ecc71", "#e74c3c"],
-                borderWidth: 0,
-                hoverOffset: 10
+                borderWidth: 0
             }] 
         },
         options: { 
@@ -178,32 +200,34 @@ function checkUrl() {
     let id = new URLSearchParams(window.location.search).get('id');
     if (id) { 
         currentDevice = id.toUpperCase(); 
-        // Đợi Firebase tải xong data rồi mới show
-        setTimeout(() => showDevice(currentDevice), 1000); 
+        if(devices[currentDevice]) showDevice(currentDevice);
     }
 }
 
+// Cập nhật đồng hồ mỗi giây
 setInterval(() => { 
-    if (currentDevice && devices[currentDevice] && devices[currentDevice].start) showDevice(currentDevice); 
+    if (currentDevice && devices[currentDevice] && devices[currentDevice].status === "Đang sử dụng") {
+        showDevice(currentDevice);
+    }
 }, 1000);
 
-checkUrl(); 
-// updateChart() sẽ được gọi tự động khi Firebase trả về dữ liệu
+// Khởi chạy
+checkUrl();
+updateChart();
 
-// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI & NHẬT KÝ (ĐÃ ĐỒNG BỘ CLOUD) =====
-
+// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI =====
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
-// Lắng nghe hàng đợi từ Cloud
 db.ref('queues').on('value', (snapshot) => {
     if(snapshot.val()) {
         queues = snapshot.val();
+        localStorage.setItem("queues", JSON.stringify(queues));
         if(currentDevice) showDevice(currentDevice);
     }
 });
 
 function saveQueue() { 
     localStorage.setItem("queues", JSON.stringify(queues)); 
-    db.ref('queues').set(queues); // Đẩy lên Cloud
+    db.ref('queues').set(queues);
 }
 
 function renderQueueInfo(id) {
@@ -213,7 +237,8 @@ function renderQueueInfo(id) {
             <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📋 DANH SÁCH CHỜ (${q.length}):</p>
             <p style="margin:5px 0 0 0; font-size:0.8em; color:rgba(255,255,255,0.8);">${q.map((item, index) => `${index+1}. ${item.userName}`).join(" | ")}</p>
         </div>`;
-        document.getElementById("result").innerHTML += qHtml;
+        const resultDiv = document.getElementById("result");
+        if(resultDiv) resultDiv.innerHTML += qHtml;
     }
 }
 
@@ -226,7 +251,6 @@ function joinQueue() {
     queues[currentDevice].push({ userName: name, time: new Date().toLocaleString() });
     saveQueue();
     alert("✅ Đăng ký hàng chờ thành công!");
-    showDevice(currentDevice);
 }
 
 function checkInFromQueue() {
@@ -238,42 +262,6 @@ function checkInFromQueue() {
         saveQueue();
         let d = devices[currentDevice];
         d.status = "Đang sử dụng"; d.user = nextUser; d.start = Date.now();
-        save(); showDevice(currentDevice); updateChart();
+        save();
     }
-}
-
-// Hàm showLogbook và downloadCSV giữ nguyên
-function showLogbook() {
-    let history = JSON.parse(localStorage.getItem("history")) || [];
-    if(history.length === 0) return alert("Nhật ký trống!");
-
-    let rows = history.slice().reverse().map(h => `
-        <tr style="border-bottom:1px solid var(--glass-border);">
-            <td style="padding:10px;">${h.device}</td>
-            <td style="padding:10px;">${h.user}</td>
-            <td style="padding:10px; color:var(--primary-neon);">${h.duration}</td>
-        </tr>`).join("");
-
-    document.getElementById("result").innerHTML = `
-        <h3 style="color:var(--primary-neon); text-transform:uppercase; letter-spacing:2px;">NHẬT KÝ SỬ DỤNG</h3>
-        <div style="max-height: 250px; overflow-y: auto;">
-            <table style="width:100%; border-collapse:collapse; font-size:0.8em; text-align:left; color: white;">
-                <thead><tr style="background:rgba(255,255,255,0.1); color:var(--primary-neon);"><th style="padding:10px;">MÁY</th><th style="padding:10px;">NGƯỜI DÙNG</th><th style="padding:10px;">THỜI GIAN</th></tr></thead>
-                <tbody>${rows}</tbody>
-            </table>
-        </div>
-        <button onclick="downloadCSV()" style="margin-top:15px; background:var(--primary-neon); color:black; border:none; padding:12px; width:100%; border-radius:12px; font-weight:bold;">📥 XUẤT FILE EXCEL (CSV)</button>
-        <button onclick="showDevice(currentDevice)" style="margin-top:10px; background:transparent; border:1px solid var(--glass-border); color:white; padding:10px; width:100%; border-radius:12px;">⬅ QUAY LẠI</button>
-    `;
-}
-
-function downloadCSV() {
-    let history = JSON.parse(localStorage.getItem("history")) || [];
-    let csv = "\uFEFFThiết bị,Người dùng,Thời gian,Thời lượng\n";
-    history.forEach(h => { csv += `${h.device},${h.user},${h.time},${h.duration}\n`; });
-    let blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = "NHAT_KY_LAB.csv";
-    link.click();
 }
