@@ -1,25 +1,39 @@
+// ===== 0. CẤU HÌNH FIREBASE (MỚI THÊM) =====
+const firebaseConfig = {
+    databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com"
+};
+// Khởi tạo Firebase nếu chưa có
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const db = firebase.database();
+
 let scanner = null;
 let currentDevice = "";
 let chart = null;
 
-// ===== 1. DỮ LIỆU 10 THIẾT BỊ =====
-let devices = JSON.parse(localStorage.getItem("devices")) || {
-    "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
-    "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
-    "TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
-    "TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
-    "TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
-    "TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
-    "TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
-    "TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
-    "TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
-    "TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
-};
+// ===== 1. DỮ LIỆU 10 THIẾT BỊ (SỬA ĐỂ LẤY TỪ CLOUD) =====
+let devices = {};
 
-function save() { localStorage.setItem("devices", JSON.stringify(devices)); }
+// LẮNG NGHE DỮ LIỆU TỪ CLOUD (THAY CHO LOCALSTORAGE)
+db.ref('devices').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        devices = data;
+        if (currentDevice) showDevice(currentDevice);
+        updateChart();
+    }
+});
+
+function save() { 
+    // Vừa lưu Local (cho chắc) vừa đẩy lên Cloud
+    localStorage.setItem("devices", JSON.stringify(devices)); 
+    db.ref('devices').set(devices);
+}
+
 function formatTime(ms) { let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
 
-// ===== 2. HÀM QUÉT QR (CÔNG NGHỆ) =====
+// ===== 2. HÀM QUÉT QR (GIỮ NGUYÊN) =====
 function startScan() {
     if(typeof Html5Qrcode === "undefined") return alert("❌ Chưa nạp thư viện QR");
     const reader = document.getElementById("reader");
@@ -60,9 +74,10 @@ function startScan() {
     }).catch(err => alert("❌ Lỗi Camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ (PHONG CÁCH CYBER) =====
+// ===== 3. HIỂN THỊ THIẾT BỊ (GIỮ NGUYÊN) =====
 function showDevice(id) {
     let d = devices[id];
+    if(!d) return;
     let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
     let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
 
@@ -78,7 +93,7 @@ function showDevice(id) {
     renderQueueInfo(id);
 }
 
-// ===== 4. ĐIỀU KHIỂN VẬN HÀNH =====
+// ===== 4. ĐIỀU KHIỂN VẬN HÀNH (GIỮ NGUYÊN NHƯNG SAVE() SẼ ĐẨY LÊN CLOUD) =====
 function useDevice() {
     if(!currentDevice) return alert("⚠️ Vui lòng quét mã QR trước!");
     let nameInput = document.getElementById("user-name");
@@ -92,7 +107,7 @@ function useDevice() {
     d.status = "Đang sử dụng"; 
     d.user = name; 
     d.start = Date.now();
-    save(); 
+    save(); // Tự động đẩy lên Cloud
     showDevice(currentDevice); 
     updateChart();
 }
@@ -110,6 +125,9 @@ function stopDevice() {
             duration: formatTime(used) 
         });
         localStorage.setItem("history", JSON.stringify(history));
+        // Đẩy cả lịch sử lên Cloud để Admin thấy
+        db.ref('history').set(history);
+
         d.total += used; 
         d.start = null;
     }
@@ -130,7 +148,7 @@ function errorDevice() {
     }
 }
 
-// ===== 5. BIỂU ĐỒ TRẠNG THÁI (NEON) =====
+// ===== 5. BIỂU ĐỒ TRẠNG THÁI (GIỮ NGUYÊN) =====
 function updateChart() {
     let u=0, f=0, b=0;
     Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
@@ -158,25 +176,35 @@ function updateChart() {
 
 function checkUrl() {
     let id = new URLSearchParams(window.location.search).get('id');
-    if (id && devices[id.toUpperCase()]) { 
+    if (id) { 
         currentDevice = id.toUpperCase(); 
-        showDevice(currentDevice); 
+        // Đợi Firebase tải xong data rồi mới show
+        setTimeout(() => showDevice(currentDevice), 1000); 
     }
 }
 
 setInterval(() => { 
-    if (currentDevice && devices[currentDevice].start) showDevice(currentDevice); 
+    if (currentDevice && devices[currentDevice] && devices[currentDevice].start) showDevice(currentDevice); 
 }, 1000);
 
 checkUrl(); 
-updateChart();
+// updateChart() sẽ được gọi tự động khi Firebase trả về dữ liệu
 
-// ================================================================
-// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI & NHẬT KÝ (TIẾNG VIỆT) =====
-// ================================================================
+// ===== PHẦN MỞ RỘNG: HÀNG ĐỢI & NHẬT KÝ (ĐÃ ĐỒNG BỘ CLOUD) =====
 
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
-function saveQueue() { localStorage.setItem("queues", JSON.stringify(queues)); }
+// Lắng nghe hàng đợi từ Cloud
+db.ref('queues').on('value', (snapshot) => {
+    if(snapshot.val()) {
+        queues = snapshot.val();
+        if(currentDevice) showDevice(currentDevice);
+    }
+});
+
+function saveQueue() { 
+    localStorage.setItem("queues", JSON.stringify(queues)); 
+    db.ref('queues').set(queues); // Đẩy lên Cloud
+}
 
 function renderQueueInfo(id) {
     let q = queues[id] || [];
@@ -214,6 +242,7 @@ function checkInFromQueue() {
     }
 }
 
+// Hàm showLogbook và downloadCSV giữ nguyên
 function showLogbook() {
     let history = JSON.parse(localStorage.getItem("history")) || [];
     if(history.length === 0) return alert("Nhật ký trống!");
