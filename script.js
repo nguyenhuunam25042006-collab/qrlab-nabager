@@ -253,8 +253,15 @@ function renderQueueInfo(id) {
     let q = queues[id] || [];
     if(q.length > 0) {
         let qHtml = `<div style="margin-top:15px; padding:12px; background:rgba(0,242,254,0.05); border-radius:15px; border:1px dashed var(--primary-neon);">
-            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📅 LỊCH ĐĂNG KÝ TIẾP THEO (${q.length}):</p>
-            <p style="margin:5px 0 0 0; font-size:0.8em; color:rgba(255,255,255,0.8);">${q.map((item, index) => `<b>${item.userName}</b> (${item.time})`).join(" ➔ ")}</p>
+            <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📅 DANH SÁCH LỊCH ĐÃ ĐẶT (${q.length}):</p>
+            <div style="margin-top:5px;">
+                ${q.map((item, index) => `
+                    <div style="font-size:0.8em; color:rgba(255,255,255,0.8); border-bottom:1px solid rgba(255,255,255,0.1); padding:5px 0;">
+                        ${index+1}. <b>${item.userName}</b> <br>
+                        ⏱ Lịch: <span style="color:#00f2fe;">${item.bookTime}</span> (Dùng: ${item.estimated})
+                    </div>
+                `).join("")}
+            </div>
         </div>`;
         const resultDiv = document.getElementById("result");
         if(resultDiv) resultDiv.innerHTML += qHtml;
@@ -262,21 +269,32 @@ function renderQueueInfo(id) {
 }
 
 function joinQueue() {
-    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị để đăng ký lịch!");
+    if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị để đặt lịch!");
     let nameInput = document.getElementById("user-name");
-    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên để đăng ký lịch sử dụng:");
+    let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên để đặt lịch sử dụng:");
     
     if(!name) return;
+
+    // Nhập Ngày/Tháng/Năm và Giờ
+    let dateTime = prompt("Nhập Ngày & Giờ muốn sử dụng (Ví dụ: 14:30 05/04/2026):", 
+        new Date().getHours() + ":" + new Date().getMinutes() + " " + new Date().toLocaleDateString('vi-VN'));
+    if(!dateTime) return;
+
+    // Nhập thời gian dùng bao lâu
+    let duration = prompt("Bạn dự kiến sử dụng trong bao lâu? (VD: 30 phút, 1 tiếng...)", "1 tiếng");
+    if(!duration) return;
+
     if(!queues[currentDevice]) queues[currentDevice] = [];
     if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có tên trong danh sách đăng ký của máy này!");
     
     queues[currentDevice].push({ 
         userName: name, 
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) 
+        bookTime: dateTime, // Lưu ngày tháng năm giờ cụ thể
+        estimated: duration  // Lưu thời gian dự kiến dùng
     });
     
     saveQueue();
-    alert(`✅ Đã ghi nhận lịch sử dụng cho: ${name}`);
+    alert(`✅ Đã đặt lịch thành công cho: ${name} vào lúc ${dateTime}`);
     showDevice(currentDevice);
 }
 
