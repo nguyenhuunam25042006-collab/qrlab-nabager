@@ -9,6 +9,20 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
+// KHO DỮ LIỆU CÔNG DỤNG (THÊM MỚI ĐỂ BÁO CÁO UTT)
+const deviceManuals = {
+    "TB001": { usage: "Sấy khô cốt liệu, mẫu vật liệu và dụng cụ thí nghiệm ở nhiệt độ chuẩn." },
+    "TB002": { usage: "Mô phỏng tác động tải trọng xe để đánh giá khả năng kháng lún mặt đường." },
+    "TB003": { usage: "Xác định độ ổn định và độ dẻo Marshall của bê tông nhựa." },
+    "TB004": { usage: "Chế tạo mẫu bê tông nhựa chuẩn bằng phương pháp đầm va đập." },
+    "TB005": { usage: "Xác định tỷ lệ sáp (Parafin) để đánh giá độ giòn/mềm của nhựa đường." },
+    "TB006": { usage: "Đo độ dẻo và khả năng kéo dài kết dính của nhựa khi chịu lực." },
+    "TB007": { usage: "Đo độ nhớt để xác định nhiệt độ trộn và rải tối ưu ngoài công trường." },
+    "TB008": { usage: "Đánh giá mức độ lão hóa của nhựa đường dưới tác động nhiệt." },
+    "TB009": { usage: "Cắt mẫu bê tông lớn thành các mẫu thử chuẩn hình khối/trụ." },
+    "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn." }
+};
+
 // LẮNG NGHE BIẾN ĐỘNG TỪ USER (Tự động cập nhật khi điện thoại quét mã)
 db.ref('devices').on('value', (snapshot) => {
     const data = snapshot.val();
@@ -54,7 +68,7 @@ function formatTime(ms) {
     return Math.floor(s/60) + "p " + (s % 60) + "s";
 }
 
-// 4. Hiển thị danh sách thiết bị (GIỮ NGUYÊN)
+// 4. Hiển thị danh sách thiết bị (ĐÃ THÊM PHẦN HIỂN THỊ CÔNG DỤNG)
 function render() {
     let searchInput = document.getElementById("search");
     let keyword = searchInput ? searchInput.value.toLowerCase() : "";
@@ -62,16 +76,24 @@ function render() {
     if(!listDiv) return;
     listDiv.innerHTML = "";
 
+    // Lấy dữ liệu lịch đăng ký (queues) từ local để báo cho admin
+    let queues = JSON.parse(localStorage.getItem("queues")) || {};
+
     Object.entries(devices).forEach(([id, d]) => {
         if (!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)) return;
 
         let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
+        
+        // Hiển thị số lượng người đăng ký lịch
+        let qCount = queues[id] ? queues[id].length : 0;
+        let queueHtml = qCount > 0 ? `<br><small style="color:#f39c12; font-weight:bold;">📅 LỊCH ĐĂNG KÝ: ${qCount} NGƯỜI</small>` : "";
 
         let devEl = document.createElement("div");
         devEl.className = "device";
         devEl.innerHTML = `
             <div class="device-info">
-                <b>${d.name}</b> (${id})<br>
+                <b>${d.name}</b> (${id})${queueHtml}<br>
+                <p style="margin:2px 0; font-size:11px; color:#888; line-height:1.2;">${deviceManuals[id]?.usage || ""}</p>
                 <span class="badge ${color}">${d.status}</span><br>
                 <small>ND: <b>${d.user || "Trống"}</b> | Tổng: ${formatTime(d.total)}</small><br>
                 <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
@@ -129,7 +151,7 @@ function closeQR() {
     if(modal) modal.style.display = "none";
 }
 
-// 7. CÁC HÀM ĐIỀU KHIỂN (THÊM LỆNH ĐẨY CLOUD VÀO SAVE)
+// 7. CÁC HÀM ĐIỀU KHIỂN
 function fix(id) { 
     devices[id].status = "Trống"; 
     devices[id].user = ""; 
@@ -139,7 +161,6 @@ function fix(id) {
 
 function save() { 
     localStorage.setItem("devices", JSON.stringify(devices)); 
-    // THÊM: Đồng bộ lên Cloud để User cũng thấy máy đã Reset
     db.ref('devices').set(devices); 
     render(); 
     renderHistory();
@@ -153,7 +174,6 @@ function resetAll() {
             devices[id].total = 0; 
         });
         localStorage.removeItem("history");
-        // THÊM: Xóa lịch sử trên Cloud
         db.ref('history').remove();
         save();
     }
