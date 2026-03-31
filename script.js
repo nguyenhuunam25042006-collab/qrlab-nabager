@@ -15,14 +15,14 @@ let chart = null;
 const deviceManuals = {
     "TB001": { usage: "Sấy khô cốt liệu, mẫu vật liệu và dụng cụ thí nghiệm ở nhiệt độ chuẩn.", manual: "Cài đặt 105-110°C, xếp mẫu đều, đóng chặt cửa." },
     "TB002": { usage: "Mô phỏng tác động tải trọng xe để đánh giá khả năng kháng lún mặt đường.", manual: "Lắp mẫu vào khuôn, cài nhiệt độ 60°C, thiết lập số chu kỳ chạy." },
-    "TB003": { usage: "Xác định độ ổn định và độ dẻo Marshall của bê tông nhựa.", manual: "Ngâm mẫu 60°C (30-40p), đặt vào bộ gá, bấm START tự động." },
+    "TB003": { usage: "Xác định độ ổn định và độ dẻo Marshall của bê tông nhựa.", manual: "Ngâm mẫu 60°C (30-40p), đặt vào bộ gá nén, bấm START." },
     "TB004": { usage: "Chế tạo mẫu bê tông nhựa chuẩn bằng phương pháp đầm va đập.", manual: "Cho hỗn hợp vào khuôn, cài số chày đầm (50-75 lần), bấm máy." },
     "TB005": { usage: "Xác định tỷ lệ sáp (Parafin) để đánh giá độ giòn/mềm của nhựa đường.", manual: "Tuân thủ quy trình chiết tách nhiệt độ thấp theo tiêu chuẩn ngành." },
     "TB006": { usage: "Đo độ dẻo và khả năng kéo dài kết dính của nhựa khi chịu lực.", manual: "Đổ nhựa vào khuôn, đặt vào bể ổn nhiệt, cài tốc độ kéo chuẩn." },
     "TB007": { usage: "Đo độ nhớt để xác định nhiệt độ trộn và rải tối ưu ngoài công trường.", manual: "Lựa chọn kim đo phù hợp, cài đặt tốc độ quay và nhiệt độ thử." },
     "TB008": { usage: "Đánh giá mức độ lão hóa của nhựa đường dưới tác động nhiệt.", manual: "Cân mẫu trước/sau khi sấy trong bình xoay nhiệt độ cao." },
     "TB009": { usage: "Cắt mẫu bê tông lớn thành các mẫu thử chuẩn hình khối/trụ.", manual: "Cố định mẫu chặt, sử dụng nước làm mát lưỡi cắt liên tục." },
-    "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn.", manual: "Kiểm tra mực nước và nhiệt độ bể bảo dưỡng ngày (27±2°C)." }
+    "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn.", manual: "Kiểm tra mực nước và nhiệt độ bể bảo dưỡng hàng ngày (27±2°C)." }
 };
 
 // ===== 1. DỮ LIỆU THIẾT BỊ (Nên có khung mặc định để tránh lỗi undefined) =====
