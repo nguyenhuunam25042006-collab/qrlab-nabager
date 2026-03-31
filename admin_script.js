@@ -40,6 +40,15 @@ db.ref('history').on('value', (snapshot) => {
         renderHistory(); // Gọi hàm hiển thị lịch sử của bạn
     }
 });
+
+// MỚI: Lắng nghe lịch đặt trước (queues) từ Cloud
+db.ref('queues').on('value', (snapshot) => {
+    const queueData = snapshot.val();
+    if (queueData) {
+        localStorage.setItem("queues", JSON.stringify(queueData));
+        render(); // Vẽ lại để cập nhật danh sách đặt lịch
+    }
+});
 // =======================================================
 
 // 1. Kiểm tra quyền admin (GIỮ NGUYÊN)
@@ -68,7 +77,7 @@ function formatTime(ms) {
     return Math.floor(s/60) + "p " + (s % 60) + "s";
 }
 
-// 4. Hiển thị danh sách thiết bị (ĐÃ THÊM PHẦN HIỂN THỊ CÔNG DỤNG)
+// 4. Hiển thị danh sách thiết bị (ĐÃ CẬP NHẬT LỊCH ĐẶT CHI TIẾT)
 function render() {
     let searchInput = document.getElementById("search");
     let keyword = searchInput ? searchInput.value.toLowerCase() : "";
@@ -76,7 +85,7 @@ function render() {
     if(!listDiv) return;
     listDiv.innerHTML = "";
 
-    // Lấy dữ liệu lịch đăng ký (queues) từ local để báo cho admin
+    // Lấy dữ liệu lịch đăng ký (queues) từ local (đã đồng bộ Cloud)
     let queues = JSON.parse(localStorage.getItem("queues")) || {};
 
     Object.entries(devices).forEach(([id, d]) => {
@@ -84,16 +93,30 @@ function render() {
 
         let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
         
-        // Hiển thị số lượng người đăng ký lịch
-        let qCount = queues[id] ? queues[id].length : 0;
-        let queueHtml = qCount > 0 ? `<br><small style="color:#f39c12; font-weight:bold;">📅 LỊCH ĐĂNG KÝ: ${qCount} NGƯỜI</small>` : "";
+        // CẬP NHẬT: Hiển thị chi tiết lịch đặt trước
+        let q = queues[id] || [];
+        let queueHtml = "";
+        if(q.length > 0) {
+            let listItems = q.slice(0, 2).map(item => 
+                `<div style="font-size:10px; color:#e67e22; border-left:2px solid #f39c12; padding-left:5px; margin-top:3px;">
+                    👤 ${item.userName}: <b>${item.bookTime}</b> (${item.estimated})
+                </div>`
+            ).join("");
+            queueHtml = `<div style="margin-top:5px; background:rgba(243,156,18,0.05); padding:5px; border-radius:5px;">
+                <small style="color:#f39c12; font-weight:bold;">📅 ĐẶT TRƯỚC (${q.length}):</small>
+                ${listItems}
+            </div>`;
+        } else {
+            queueHtml = `<br><small style="color:#888;">(Chưa có lịch đặt)</small>`;
+        }
 
         let devEl = document.createElement("div");
         devEl.className = "device";
         devEl.innerHTML = `
             <div class="device-info">
-                <b>${d.name}</b> (${id})${queueHtml}<br>
-                <p style="margin:2px 0; font-size:11px; color:#888; line-height:1.2;">${deviceManuals[id]?.usage || ""}</p>
+                <b>${d.name}</b> (${id})
+                ${queueHtml}
+                <p style="margin:4px 0; font-size:11px; color:#888; line-height:1.2;">${deviceManuals[id]?.usage || ""}</p>
                 <span class="badge ${color}">${d.status}</span><br>
                 <small>ND: <b>${d.user || "Trống"}</b> | Tổng: ${formatTime(d.total)}</small><br>
                 <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
