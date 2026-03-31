@@ -46,7 +46,8 @@ db.ref('queues').on('value', (snapshot) => {
     const queueData = snapshot.val();
     if (queueData) {
         localStorage.setItem("queues", JSON.stringify(queueData));
-        render(); // Vẽ lại để cập nhật danh sách đặt lịch
+        render(); // Vẽ lại để cập nhật danh sách đặt lịch lẻ
+        renderBookingTable(); // Vẽ lại Bảng tổng hợp dữ liệu (MỚI THÊM)
     }
 });
 // =======================================================
@@ -85,7 +86,6 @@ function render() {
     if(!listDiv) return;
     listDiv.innerHTML = "";
 
-    // Lấy dữ liệu lịch đăng ký (queues) từ local (đã đồng bộ Cloud)
     let queues = JSON.parse(localStorage.getItem("queues")) || {};
 
     Object.entries(devices).forEach(([id, d]) => {
@@ -93,7 +93,6 @@ function render() {
 
         let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
         
-        // CẬP NHẬT: Hiển thị chi tiết lịch đặt trước
         let q = queues[id] || [];
         let queueHtml = "";
         if(q.length > 0) {
@@ -152,20 +151,49 @@ function renderHistory() {
     `).join("");
 }
 
+// ===== HÀM MỚI: HIỂN THỊ BẢNG GHI DỮ LIỆU TỔNG HỢP (DÀNH CHO PITCHING) =====
+function renderBookingTable() {
+    let queues = JSON.parse(localStorage.getItem("queues")) || {};
+    let tableBody = document.getElementById("booking-table-content");
+    if (!tableBody) return;
+
+    let allBookings = [];
+    Object.entries(queues).forEach(([deviceId, list]) => {
+        list.forEach(item => {
+            allBookings.push({
+                deviceName: devices[deviceId]?.name || deviceId,
+                userName: item.userName,
+                bookTime: item.bookTime,
+                estimated: item.estimated
+            });
+        });
+    });
+
+    if (allBookings.length === 0) {
+        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:15px; color:#888;'>Chưa có dữ liệu đặt lịch</td></tr>";
+        return;
+    }
+
+    tableBody.innerHTML = allBookings.map(b => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); font-size:13px;">
+            <td style="padding:10px; color:#f39c12;">${b.deviceName}</td>
+            <td style="padding:10px;">${b.userName}</td>
+            <td style="padding:10px; color:#2ecc71;">${b.bookTime}</td>
+            <td style="padding:10px;">${b.estimated}</td>
+        </tr>
+    `).join("");
+}
+
 // 6. PHÓNG TO QR (GIỮ NGUYÊN)
 function zoomQR(id, name) {
     const modalName = document.getElementById("modal-name");
     const bigQrDiv = document.getElementById("big-qr");
     const modal = document.getElementById("qrModal");
-    
     if(!modal || !bigQrDiv) return;
-
     modalName.innerText = name + " (" + id + ")";
     bigQrDiv.innerHTML = ""; 
-    
     let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
     new QRCode(bigQrDiv, { text: qrUrl, width: 280, height: 280 });
-    
     modal.style.display = "flex";
 }
 
@@ -212,6 +240,7 @@ window.addEventListener("storage", () => {
     devices = JSON.parse(localStorage.getItem("devices"));
     render();
     renderHistory();
+    renderBookingTable();
 });
 
 setInterval(() => {
@@ -221,3 +250,4 @@ setInterval(() => {
 // Khởi chạy
 render();
 renderHistory();
+renderBookingTable();
