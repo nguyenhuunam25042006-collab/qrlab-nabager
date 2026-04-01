@@ -6,6 +6,7 @@
     <title>Bảng Điều Khiển Admin - QR Lab Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+    
     <style>
         :root {
             --admin-neon: #2ecc71;
@@ -14,23 +15,33 @@
             --glass-bg: rgba(255, 255, 255, 0.03);
             --glass-border: rgba(46, 204, 113, 0.1);
         }
-        body { margin: 0; font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); color: rgba(255,255,255,0.9); display: flex; min-height: 100vh; overflow-x: hidden; }
+        
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: rgba(255,255,255,0.9); 
+            display: flex; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+        }
 
-        /* CSS CHO SIDEBAR (THANH MENU TRÁI) */
+        /* SIDEBAR - THANH MENU TRÁI */
         .sidebar {
-            width: 260px;
+            width: 240px;
             background: var(--bg-card);
             border-right: 1px solid var(--glass-border);
             display: flex;
             flex-direction: column;
-            transition: 0.3s ease;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: fixed;
             top: 0;
             left: 0;
             height: 100%;
             z-index: 1000;
         }
-        .sidebar.collapsed { width: 70px; } /* Sidebar thu nhỏ */
+
+        .sidebar.collapsed { width: 70px; }
 
         .sidebar-header {
             padding: 20px;
@@ -38,136 +49,139 @@
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid var(--glass-border);
+            height: 60px;
+            box-sizing: border-box;
         }
-        .sidebar-header .logo-text {
+
+        .logo-text {
             color: var(--admin-neon);
-            font-size: 20px;
+            font-size: 18px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
-            transition: 0.3s ease;
+            white-space: nowrap;
+            transition: 0.3s;
         }
-        .sidebar.collapsed .sidebar-header .logo-text { display: none; } /* Ẩn chữ khi thu nhỏ */
 
-        /* NÚT 3 GẠCH NGANG */
+        .sidebar.collapsed .logo-text { opacity: 0; pointer-events: none; }
+
         .menu-toggle-btn {
             background: none;
             border: none;
-            color: #888;
-            font-size: 20px;
+            color: var(--admin-neon);
+            font-size: 22px;
             cursor: pointer;
-            padding: 5px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: 0.3s;
         }
-        .menu-toggle-btn:hover { color: var(--admin-neon); }
 
-        .sidebar-menu {
-            padding: 20px 0;
-            flex: 1;
-            overflow-y: auto;
-        }
+        .menu-toggle-btn:hover { transform: scale(1.1); text-shadow: 0 0 10px var(--admin-neon); }
+
+        .sidebar-menu { padding: 20px 0; flex: 1; }
+
         .tab-btn {
             width: 100%;
             display: flex;
             align-items: center;
-            padding: 15px 20px;
+            padding: 15px 22px;
             background: transparent;
             color: #888;
             border: none;
-            border-left: 3px solid transparent;
+            border-left: 4px solid transparent;
             cursor: pointer;
-            text-align: left;
-            transition: 0.2s ease;
+            transition: 0.3s;
             font-size: 14px;
-            letter-spacing: 0.5px;
         }
+
         .tab-btn:hover { background: rgba(255,255,255,0.03); color: white; }
+
         .tab-btn.active {
             color: var(--admin-neon);
             border-left-color: var(--admin-neon);
-            background: rgba(46, 204, 113, 0.05);
+            background: rgba(46, 204, 113, 0.07);
             font-weight: bold;
         }
+
         .tab-btn .icon { margin-right: 15px; font-size: 18px; width: 20px; text-align: center; }
-        .sidebar.collapsed .tab-btn .icon { margin-right: 0; }
-        .tab-btn .text { transition: 0.3s ease; white-space: nowrap; }
-        .sidebar.collapsed .tab-btn .text { display: none; } /* Ẩn chữ khi thu nhỏ */
+        .sidebar.collapsed .tab-btn .icon { margin-right: 0; width: 100%; }
+        .tab-btn .text { transition: 0.3s; white-space: nowrap; }
+        .sidebar.collapsed .tab-btn .text { opacity: 0; pointer-events: none; width: 0; }
 
-        .sidebar-footer {
-            padding: 20px;
-            border-top: 1px solid var(--glass-border);
-            text-align: center;
-        }
-        .logout-btn {
-            width: 100%;
-            background: rgba(255,255,255,0.05);
-            color: #bdc3c7;
-            border: 1px solid rgba(255,255,255,0.1);
-            padding: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 13px;
-        }
-        .logout-btn:hover { background: rgba(255,76,60,0.1); color: #e74c3c; border-color: #e74c3c; }
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--glass-border); }
 
-        /* CSS CHO PHẦN NỘI DUNG CHÍNH (MAIN CONTENT) */
+        /* NỘI DUNG CHÍNH */
         .main-content {
             flex: 1;
-            margin-left: 260px; /* Chừa chỗ cho Sidebar */
+            margin-left: 240px;
             padding: 30px;
-            transition: 0.3s ease;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .main-content.expanded { margin-left: 70px; } /* Khi Sidebar thu nhỏ, mở rộng Main */
 
-        .header { text-align: center; color: var(--admin-neon); font-size: 26px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 3px; text-shadow: 0 0 10px rgba(46, 204, 113, 0.5); }
-        .card { background: var(--glass-bg); color: rgba(255,255,255,0.8); padding: 25px; border-radius: 20px; border: 1px solid var(--glass-border); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); margin-bottom: 20px; backdrop-filter: blur(10px); }
-        .card h3 { margin-top: 0; color: var(--admin-neon); border-bottom: 1px solid var(--glass-border); padding-bottom: 10px; text-transform: uppercase; font-size: 16px; letter-spacing: 1px; }
-        
-        /* CSS CHO TAB-CONTENT */
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .main-content.expanded { margin-left: 70px; }
+
+        .header-title { 
+            text-align: center; 
+            color: var(--admin-neon); 
+            font-size: 24px; 
+            font-weight: bold; 
+            margin-bottom: 30px; 
+            text-transform: uppercase; 
+            letter-spacing: 4px; 
+            text-shadow: 0 0 15px rgba(46, 204, 113, 0.4); 
+        }
+
+        .card { 
+            background: var(--glass-bg); 
+            padding: 25px; 
+            border-radius: 20px; 
+            border: 1px solid var(--glass-border); 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
+            margin-bottom: 25px; 
+            backdrop-filter: blur(10px); 
+        }
+
+        .card h3 { margin-top: 0; color: var(--admin-neon); border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; text-transform: uppercase; font-size: 15px; letter-spacing: 1px; }
+
+        /* PHÂN CHIA TABS */
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
         .tab-content.active { display: block; }
 
-        /* GIỮ NGUYÊN CÁC CSS CŨ CỦA BẠN (Đã gom gọn) */
+        /* CSS CŨ ĐÃ TỐI ƯU */
         .device { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--glass-border); gap: 15px; }
-        .device-info { flex: 1; }
-        .device-media { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 110px; }
-        .device-img { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); filter: grayscale(50%); transition: 0.3s; }
-        .device:hover .device-img { filter: grayscale(0%); border-color: var(--admin-neon); }
-        .device-qr { width: 100px; height: 100px; background: white; padding: 5px; border: 1px solid #ccc; display: flex; justify-content: center; align-items: center; border-radius: 8px; cursor: zoom-in; transition: 0.3s; }
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); box-sizing: border-box; color: var(--admin-neon); font-size: 15px; }
-        input:focus { outline: none; border-color: var(--admin-neon); }
-        button { padding: 12px 18px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; text-transform: uppercase; letter-spacing: 1px; font-size: 13px; }
-        button:active { transform: scale(0.97); }
-        .fix { background: transparent; color: var(--admin-neon); width: 100%; margin-top: 10px; border: 1px solid var(--admin-neon); }
-        .fix:hover { background: rgba(46, 204, 113, 0.1); box-shadow: 0 0 10px rgba(46, 204, 113, 0.3); }
-        .export { background: linear-gradient(45deg, var(--admin-neon), #27ae60); color: white; width: 100%; margin-bottom: 10px; box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3); }
-        .reset { background: transparent; border: 1px solid #f39c12; color: #f39c12; width: 100%; margin-bottom: 10px; }
-        .reset:hover { background: rgba(243, 156, 18, 0.1); }
-        .badge { padding: 4px 10px; border-radius: 6px; color: white; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .free { background: rgba(46, 204, 113, 0.1); border: 1px solid #2ecc71; color: #2ecc71; }
-        .using { background: rgba(241, 196, 15, 0.1); border: 1px solid #f1c40f; color: #f1c40f; }
-        .broken { background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; color: #e74c3c; }
-        #history-list { font-size: 13px; max-height: 250px; overflow-y: auto; color: rgba(255,255,255,0.7); }
-        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); justify-content: center; align-items: center; backdrop-filter: blur(10px); }
-        .modal-content { background-color: #ffffff; padding: 25px; border-radius: 20px; text-align: center; max-width: 90%; animation: zoomIn 0.3s ease; color: #333; }
-        #big-qr img { width: 280px !important; height: 280px !important; margin: 0 auto; }
-        .close-btn { margin-top: 20px; background: #000; color: white; width: 100%; padding: 12px; border-radius: 10px; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; color: #fff; font-size: 13px; }
-        th { text-align: left; padding: 10px; color: #f39c12; border-bottom: 1px solid rgba(243, 156, 18, 0.2); }
-        td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .device-img { width: 90px; height: 90px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); }
+        .device-qr { width: 90px; height: 90px; background: white; padding: 5px; border-radius: 8px; cursor: zoom-in; }
+        
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; border: 1px solid transparent; }
+        .free { background: rgba(46, 204, 113, 0.1); border-color: #2ecc71; color: #2ecc71; }
+        .using { background: rgba(241, 196, 15, 0.1); border-color: #f1c40f; color: #f1c40f; }
+        .broken { background: rgba(231, 76, 60, 0.1); border-color: #e74c3c; color: #e74c3c; }
 
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th { text-align: left; padding: 12px; color: #f39c12; border-bottom: 1px solid rgba(243, 156, 18, 0.2); }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .modal-content { background: white; padding: 30px; border-radius: 25px; text-align: center; color: #333; animation: zoomIn 0.3s ease; }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes zoomIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+        @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar { left: -240px; }
+            .sidebar.open { left: 0; }
+            .main-content { margin-left: 0 !important; padding: 15px; }
+        }
     </style>
 </head>
 <body>
+
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="logo-text">NAB LAB</div>
-            <button class="menu-toggle-btn" onclick="toggleSidebar()">
-                &#9776; </button>
+            <div class="logo-text">NAB LAB PRO</div>
+            <button class="menu-toggle-btn" onclick="toggleSidebar()">&#9776;</button>
         </div>
         <div class="sidebar-menu">
             <button class="tab-btn active" onclick="openTab(event, 'tab-dashboard')">
@@ -184,247 +198,79 @@
             </button>
         </div>
         <div class="sidebar-footer">
-            <button class="logout-btn" onclick="logout()">🚪 ĐĂNG XUẤT</button>
+            <button class="logout-btn" onclick="logout()" style="width:100%; background:rgba(231, 76, 60, 0.1); color:#e74c3c; border:1px solid #e74c3c; border-radius:10px; padding:10px; cursor:pointer;">🚪 ĐĂNG XUẤT</button>
         </div>
     </div>
 
     <div class="main-content" id="main-content">
-        <div class="header">HỆ THỐNG QUẢN TRỊ VIÊN</div>
+        <div class="header-title">HỆ THỐNG QUẢN TRỊ VIÊN</div>
 
         <div id="tab-dashboard" class="tab-content active">
-            <div class="card" style="display: flex; gap: 20px; align-items: center; justify-content: space-around; flex-wrap: wrap;">
-                <div style="text-align: center; width: 130px;">
+            <div class="card" style="display: flex; gap: 30px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                <div style="width: 150px; height: 150px;">
                     <canvas id="adminChart"></canvas>
                 </div>
-                <div style="flex: 1; min-width: 200px;">
-                    <h4 style="color: var(--admin-neon); margin: 0 0 10px 0;">📊 PHÂN TÍCH HỆ THỐNG:</h4>
-                    <div id="quick-stats" style="font-size: 13px; line-height: 1.6; color: #ccc;">Đang tải...</div>
-                </div>
+                <div id="quick-stats" style="line-height: 2; font-size: 14px;">Đang tải dữ liệu...</div>
             </div>
-            </div>
+        </div>
 
         <div id="tab-devices" class="tab-content">
-            <div class="card" style="border: 1px solid var(--admin-neon);">
-                <h3>🛠 QUẢN LÝ DANH MỤC THIẾT BỊ</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input id="new-id" placeholder="ID MÁY (VD: TB011)">
-                    <input id="new-name" placeholder="TÊN MÁY MỚI">
-                    <input id="new-img" style="grid-column: span 2;" placeholder="LINK ẢNH THIẾT BỊ (URL ONLINE)">
-                    
-                    <input id="new-usage" style="grid-column: span 2;" placeholder="CÔNG DỤNG CHI TIẾT">
-                    <input id="new-manual" style="grid-column: span 2;" placeholder="QUY TRÌNH VẬN HÀNH">
-                </div>
-                <button class="export" onclick="updateDeviceSystem()" style="margin-top: 10px; width: 100%;">🚀 CẬP NHẬT & SINH MÃ QR</button>
-            </div>
-
             <div class="card">
-                <h3>📋 TRUNG TÂM QUẢN LÝ THIẾT BỊ</h3>
-                <input id="search" placeholder="🔍 TÌM KIẾM THEO TÊN HOẶC MÃ ID..." oninput="render()">
+                <h3>🛠 THÊM / CẬP NHẬT THIẾT BỊ</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <input id="new-id" placeholder="Mã ID (VD: TB011)">
+                    <input id="new-name" placeholder="Tên thiết bị">
+                    <input id="new-image" style="grid-column: span 2;" placeholder="Link ảnh trực tuyến (URL)">
+                    <input id="new-usage" style="grid-column: span 2;" placeholder="Mô tả công dụng">
+                    <input id="new-manual" style="grid-column: span 2;" placeholder="Quy trình vận hành">
+                </div>
+                <button class="export" onclick="updateDeviceSystem()" style="width:100%; margin-top:15px; padding:15px;">🚀 CẬP NHẬT HỆ THỐNG</button>
+            </div>
+            <div class="card">
+                <h3>📋 DANH SÁCH THIẾT BỊ</h3>
+                <input id="search" placeholder="🔍 Tìm kiếm máy..." oninput="render()">
                 <div id="list"></div>
             </div>
         </div>
 
         <div id="tab-booking" class="tab-content">
-            <div class="card" style="border-color: #f39c12;">
-                <h3 style="color: #f39c12;">📋 BẢNG GHI DỮ LIỆU NGƯỜI ĐĂNG KÝ</h3>
-                <div id="booking-table">
+            <div class="card">
+                <h3>📅 DANH SÁCH ĐĂNG KÝ SỬ DỤNG</h3>
+                <div style="overflow-x: auto;">
                     <table>
                         <thead>
-                            <tr>
-                                <th>THIẾT BỊ</th>
-                                <th>NGƯỜI DÙNG</th>
-                                <th>LỊCH ĐẶT</th>
-                                <th>DỰ KIẾN</th>
-                            </tr>
+                            <tr><th>THIẾT BỊ</th><th>NGƯỜI DÙNG</th><th>LỊCH ĐẶT</th><th>DỰ KIẾN</th></tr>
                         </thead>
-                        <tbody id="booking-table-content">
-                            <tr><td colspan="4" style="text-align:center;">Đang tải dữ liệu lịch...</td></tr>
-                        </tbody>
+                        <tbody id="booking-table-content"></tbody>
                     </table>
                 </div>
             </div>
         </div>
-        
+
         <div id="tab-history" class="tab-content">
             <div class="card">
-                <h3>🕒 LỊCH SỬ SỬ DỤNG (10 HOẠT ĐỘNG GẦN NHẤT)</h3>
-                <div id="history-list">ĐANG ĐỒNG BỘ DỮ LIỆU...</div>
+                <h3>🕒 LỊCH SỬ HOẠT ĐỘNG</h3>
+                <div id="history-list"></div>
             </div>
-            
-            <div class="card" style="text-align: center;">
-                <button class="export" onclick="exportFullHistory()">📊 XUẤT NHẬT KÝ (FILE EXCEL)</button>
-                <button class="reset" onclick="resetAll()">🔄 RESET TOÀN BỘ TRẠNG THÁI</button>
+            <div style="display: flex; gap: 10px;">
+                <button class="export" onclick="exportFullHistory()" style="flex:1;">📊 XUẤT FILE EXCEL</button>
+                <button class="reset" onclick="resetAll()" style="flex:1; border:1px solid #f39c12; color:#f39c12; background:none; border-radius:10px; cursor:pointer;">🔄 RESET HỆ THỐNG</button>
             </div>
         </div>
-
     </div>
 
     <div id="qrModal" class="modal" onclick="closeQR()">
         <div class="modal-content" onclick="event.stopPropagation()">
-            <h3 id="modal-name" style="margin-bottom: 15px; color: #000; text-transform: uppercase;">ID THIẾT BỊ</h3>
-            <div id="big-qr"></div>
-            <p style="color: #666; margin-top: 15px; font-size: 14px;">HƯỚNG CAMERA VÀO MÃ ĐỂ QUÉT</p>
-            <button class="close-btn" onclick="closeQR()">ĐÓNG LẠI</button>
+            <h2 id="modal-name">ID THIẾT BỊ</h2>
+            <div id="big-qr" style="display:inline-block; margin: 20px;"></div>
+            <button onclick="closeQR()" style="width:100%; padding:12px; background:#000; color:#fff; border:none; border-radius:10px; cursor:pointer;">ĐÓNG</button>
         </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    <script>
-        const firebaseConfig = { databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com" };
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-        const db = firebase.database();
+    
+    <script src="admin_script.js"></script>
 
-        let adminChart = null;
-        let devices = {};
-        let deviceManuals = {}; // Khởi tạo trống
-
-        if(localStorage.getItem("role") !== "admin") location.href = "./login.html";
-
-        db.ref('deviceManuals').on('value', (snapshot) => {
-            if (snapshot.val()) { deviceManuals = snapshot.val(); render(); }
-        });
-
-        db.ref('devices').on('value', (snapshot) => {
-            const data = snapshot.val();
-            if (data) { 
-                devices = data; 
-                render(); 
-                updateAdminStats(); 
-            }
-        });
-
-        db.ref('history').on('value', (snapshot) => {
-            const histData = snapshot.val();
-            if (histData) {
-                localStorage.setItem("history", JSON.stringify(histData));
-                renderHistory();
-            }
-        });
-
-        db.ref('queues').on('value', (snapshot) => {
-            const queueData = snapshot.val();
-            if (queueData) {
-                localStorage.setItem("queues", JSON.stringify(queueData));
-                render(); 
-                renderBookingTable(); 
-            }
-        });
-
-        function formatTime(ms) { if(!ms) return "0p 0s"; let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
-
-        // === JAVASCRIPT CHO GIAO DIỆN TABS & SIDEBAR (MỚI) ===
-        function openTab(evt, tabName) {
-            // 1. Ẩn tất cả các tab content
-            const contents = document.getElementsByClassName("tab-content");
-            for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
-
-            // 2. Bỏ active ở tất cả các nút
-            const buttons = document.getElementsByClassName("tab-btn");
-            for (let i = 0; i < buttons.length; i++) buttons[i].classList.remove("active");
-
-            // 3. Hiển thị tab hiện tại và thêm class active vào nút đã bấm
-            document.getElementById(tabName).classList.add("active");
-            evt.currentTarget.classList.add("active");
-            
-            // 4. Vẽ lại biểu đồ Dashboard (Fix lỗi kích thước Chart)
-            if(tabName === 'tab-dashboard') updateAdminStats();
-            
-            // 5. Trên di động, thu nhỏ sidebar sau khi chọn
-            if (window.innerWidth <= 768) toggleSidebar();
-        }
-
-        function toggleSidebar() {
-            const sidebar = document.getElementById("sidebar");
-            const mainContent = document.getElementById("main-content");
-            sidebar.classList.toggle("collapsed");
-            mainContent.classList.toggle("expanded");
-        }
-
-        // === GIỮ NGUYÊN TOÀN BỘ LOGIC CŨ CỦA BẠN (Đã sửa updateAdminStats & render ảnh) ===
-        function updateDeviceSystem() {
-            const id = document.getElementById("new-id").value.trim().toUpperCase();
-            const name = document.getElementById("new-name").value.trim();
-            const usage = document.getElementById("new-usage").value.trim();
-            const manual = document.getElementById("new-manual").value.trim();
-            const image = document.getElementById("new-img") ? document.getElementById("new-img").value.trim() : ""; // Link ảnh
-
-            if (!id || !name) return alert("⚠️ Vui lòng nhập ID và Tên máy!");
-
-            const updates = {};
-            updates['/devices/' + id] = { 
-                name: name, 
-                status: devices[id]?.status || "Trống", 
-                user: "", 
-                total: devices[id]?.total || 0,
-                image: image || "" // Lưu link ảnh
-            };
-            updates['/deviceManuals/' + id] = { usage: usage || "Chưa cập nhật", manual: manual || "Chưa có quy trình" };
-
-            db.ref().update(updates).then(() => {
-                alert("✅ Đã cập nhật thiết bị " + name + " thành công!");
-                ["new-id", "new-name", "new-usage", "new-manual", "new-img"].forEach(k => { if(document.getElementById(k)) document.getElementById(k).value = ""; });
-            });
-        }
-
-        function updateAdminStats() {
-            let u=0, f=0, b=0;
-            let total = Object.keys(devices).length;
-            if(total === 0) return; // Fix lỗi chia cho 0
-
-            Object.values(devices).forEach(d => { if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; });
-            
-            const statsDiv = document.getElementById("quick-stats");
-            if(statsDiv) statsDiv.innerHTML = `• Hiệu suất Lab: <b style="color:#2ecc71;">${Math.round((u/total)*100)}%</b><br>• Đang vận hành: <b style="color:#f1c40f;">${u} máy</b><br>• Sẵn sàng phục vụ: <b style="color:#00f2fe;">${f} máy</b>`;
-
-            const ctx = document.getElementById('adminChart');
-            if (!ctx) return;
-            if (adminChart) adminChart.destroy();
-            adminChart = new Chart(ctx, { type: 'doughnut', data: { datasets: [{ data: [u, f, b], backgroundColor: ['#f1c40f', '#2ecc71', '#e74c3c'], borderWidth: 0 }] }, options: { cutout: '75%', plugins: { legend: { display: false } } } });
-        }
-
-        function render() {
-            let keyword = document.getElementById("search").value.toLowerCase();
-            let listDiv = document.getElementById("list"); listDiv.innerHTML = "";
-            let queues = JSON.parse(localStorage.getItem("queues")) || {};
-
-            Object.entries(devices).forEach(([id, d]) => {
-                if (!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)) return;
-                let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
-                let q = queues[id] || [];
-                let queueHtml = q.length > 0 ? `<div style="margin-top:5px; background:rgba(243,156,18,0.1); padding:5px; border-radius:8px;"><small style="color:#f39c12; font-weight:bold;">📅 ĐẶT TRƯỚC: ${q.length} NGƯỜI</small><br><small style="font-size:10px;">➔ ${q[0].userName}: ${q[0].bookTime}</small></div>` : "";
-
-                // HIỂN THỊ ẢNH: Ưu tiên link online d.image
-                let imgPath = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
-
-                let devEl = document.createElement("div"); devEl.className = "device";
-                devEl.innerHTML = `<div class="device-info"><b>${d.name}</b> (${id})${queueHtml}<p style="margin:4px 0; font-size:11px; color:#888;">${deviceManuals[id]?.usage || ""}</p><span class="badge ${color}">${d.status}</span><br><small>ND: <b>${d.user || "TRỐNG"}</b> | TỔNG: ${formatTime(d.total)}</small><br><button class="fix" onclick="fix('${id}')">✔ RESET MÁY</button></div><div class="device-media"><img src="${imgPath}" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'"><div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')"></div></div>`;
-                listDiv.appendChild(devEl);
-                new QRCode(document.getElementById(`qr-${id}`), { text: `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`, width: 100, height: 100 });
-            });
-        }
-
-        function renderBookingTable() {
-            let queues = JSON.parse(localStorage.getItem("queues")) || {};
-            let tableBody = document.getElementById("booking-table-content");
-            if (!tableBody) return;
-            let all = [];
-            Object.entries(queues).forEach(([id, list]) => { list.forEach(item => { all.push({ name: devices[id]?.name || id, user: item.userName, time: item.bookTime, est: item.estimated }); }); });
-            tableBody.innerHTML = all.length === 0 ? "<tr><td colspan='4' style='text-align:center;'>Trống</td></tr>" : all.map(b => `<tr><td style="color:#f39c12;">${b.name}</td><td>${b.user}</td><td style="color:#2ecc71;">${b.time}</td><td>${b.est}</td></tr>`).join("");
-        }
-
-        function zoomQR(id, name) { document.getElementById("modal-name").innerText = name + " (" + id + ")"; const bigQrDiv = document.getElementById("big-qr"); bigQrDiv.innerHTML = ""; new QRCode(bigQrDiv, { text: `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`, width: 280, height: 280 }); document.getElementById("qrModal").style.display = "flex"; }
-        function closeQR() { document.getElementById("qrModal").style.display = "none"; }
-        function renderHistory() { let history = JSON.parse(localStorage.getItem("history")) || []; let historyDiv = document.getElementById("history-list"); if (!historyDiv || history.length === 0) return; historyDiv.innerHTML = history.slice(-10).reverse().map(h => `<div style="font-size:12px; border-bottom:1px solid var(--glass-border); padding:8px 0;"><b style="color:var(--admin-neon);">${h.device}</b> - 👤 ${h.user}<br><small>⏱ ${h.duration} | 📅 ${h.time}</small></div>`).join(""); }
-        function save() { localStorage.setItem("devices", JSON.stringify(devices)); db.ref('devices').set(devices); render(); renderHistory(); }
-        function fix(id) { devices[id].status = "Trống"; devices[id].user = ""; devices[id].start = null; save(); }
-        function resetAll() { if(confirm("Xác nhận reset toàn bộ hệ thống?")) { Object.keys(devices).forEach(id => { devices[id].status="Trống"; devices[id].user=""; devices[id].total=0; }); db.ref('devices').set(devices); db.ref('history').remove(); db.ref('queues').remove(); save(); } }
-        function logout() { localStorage.removeItem("role"); location.href = "./login.html"; }
-        function exportFullHistory() { /* Giữ nguyên hàm xuất CSV */ }
-        window.addEventListener("storage", (e) => { if (e.key === "devices" || e.key === "history" || e.key === "queues") { render(); renderHistory(); renderBookingTable(); } });
-        
-        // Chạy lần đầu
-        render(); renderHistory(); renderBookingTable();
-    </script>
 </body>
 </html>
