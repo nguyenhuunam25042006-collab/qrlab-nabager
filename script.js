@@ -25,28 +25,17 @@ const deviceManuals = {
     "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn.", manual: "Kiểm tra mực nước và nhiệt độ bể bảo dưỡng ngày (27±2°C)." }
 };
 
-// --- CHÈN THÊM: LẮNG NGHE CÔNG DỤNG TỪ CLOUD ---
+// --- PHẦN CHÈN THÊM 1: LẮNG NGHE CÔNG DỤNG TỪ CLOUD (GIÚP USER CẬP NHẬT TỨC THÌ) ---
 db.ref('deviceManuals').on('value', (snapshot) => {
     if(snapshot.val()) {
         Object.assign(deviceManuals, snapshot.val());
         if(currentDevice) showDevice(currentDevice);
     }
 });
-// ----------------------------------------------
+// -------------------------------------------------------------------------------
 
 // ===== 1. DỮ LIỆU THIẾT BỊ =====
-let devices = JSON.parse(localStorage.getItem("devices")) || {
-    "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
-    "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
-    "TB003": {name:"Marshall", status:"Trống", user:"", start:null, total:0},
-    "TB004": {name:"Đầm BTN", status:"Trống", user:"", start:null, total:0},
-    "TB005": {name:"Parafin", status:"Trống", user:"", start:null, total:0},
-    "TB006": {name:"Kéo dài nhựa", status:"Trống", user:"", start:null, total:0},
-    "TB007": {name:"Brookfield", status:"Trống", user:"", start:null, total:0},
-    "TB008": {name:"Tổn thất nhựa", status:"Trống", user:"", start:null, total:0},
-    "TB009": {name:"Cắt bê tông", status:"Trống", user:"", start:null, total:0},
-    "TB010": {name:"Bảo dưỡng bê tông", status:"Trống", user:"", start:null, total:0}
-};
+let devices = {};
 
 // LẮNG NGHE DỮ LIỆU TỪ CLOUD
 db.ref('devices').on('value', (snapshot) => {
@@ -112,14 +101,13 @@ function startScan() {
     }).catch(err => alert("❌ Lỗi Camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ (CHÈN THÊM LOGIC ẢNH) =====
+// ===== 3. HIỂN THỊ THIẾT BỊ (PHẦN CHÈN THÊM 2: LOGIC HIỂN THỊ ẢNH) =====
 function showDevice(id) {
     let d = devices[id];
     if(!d) return;
 
-    // --- CHÈN THÊM: ƯU TIÊN LẤY ẢNH TỪ CLOUD ---
+    // Ưu tiên lấy Link ảnh Admin đã dán, nếu không có mới lấy file images/id.jpg
     let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
-    // ------------------------------------------
 
     let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
     let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
@@ -269,8 +257,8 @@ function renderQueueInfo(id) {
                 `).join("")}
             </div>
         </div>`;
-        const resultDiv = document.getElementById("result");
-        if(resultDiv) resultDiv.innerHTML += qHtml;
+    const resultDiv = document.getElementById("result");
+    if(resultDiv) resultDiv.innerHTML += qHtml;
     }
 }
 
@@ -308,4 +296,3 @@ function checkInFromQueue() {
         save();
     }
 }
-
