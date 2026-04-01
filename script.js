@@ -309,6 +309,3 @@ function checkInFromQueue() {
     }
 }
 
-// Khởi chạy
-renderHistory();
-renderBookingTable(); // Nếu bro có hàm này ở đâu đó
