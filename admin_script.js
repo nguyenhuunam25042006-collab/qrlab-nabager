@@ -90,6 +90,9 @@ function render() {
             queueHtml = `<br><small style="color:#888;">(Chưa có lịch đặt)</small>`;
         }
 
+        // LOGIC HIỂN THỊ ẢNH: Ưu tiên link từ database, không có mới dùng images/ID.jpg
+        let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
+
         let devEl = document.createElement("div");
         devEl.className = "device";
         devEl.innerHTML = `
@@ -102,7 +105,7 @@ function render() {
                 <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
             </div>
             <div class="device-media">
-                <img src="images/${id}.jpg" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
+                <img src="${imgSource}" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
                 <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')" title="Bấm để phóng to"></div>
             </div>
         `;
@@ -113,10 +116,11 @@ function render() {
     });
 }
 
-// HÀM MỚI 1: CẬP NHẬT THÔNG TIN THIẾT BỊ (KHÔNG CẦN CODE)
+// HÀM MỚI 1: CẬP NHẬT THÔNG TIN THIẾT BỊ (BỔ SUNG CẬP NHẬT ẢNH)
 function updateDeviceSystem() {
     const id = document.getElementById("new-id").value.trim().toUpperCase();
     const name = document.getElementById("new-name").value.trim();
+    const imgUrl = document.getElementById("new-img") ? document.getElementById("new-img").value.trim() : "";
     const usage = document.getElementById("new-usage").value.trim();
     const manual = document.getElementById("new-manual").value.trim();
 
@@ -127,7 +131,8 @@ function updateDeviceSystem() {
         name: name, 
         status: devices[id]?.status || "Trống", 
         user: "", 
-        total: devices[id]?.total || 0 
+        total: devices[id]?.total || 0,
+        image: imgUrl || "" // Lưu link ảnh mới vào đây
     };
     updates['/deviceManuals/' + id] = { 
         usage: usage || "Đang cập nhật...", 
@@ -136,21 +141,26 @@ function updateDeviceSystem() {
 
     db.ref().update(updates).then(() => {
         alert("✅ Đã cập nhật hệ thống cho: " + name);
-        ["new-id", "new-name", "new-usage", "new-manual"].forEach(k => document.getElementById(k).value = "");
+        ["new-id", "new-name", "new-img", "new-usage", "new-manual"].forEach(k => {
+            if(document.getElementById(k)) document.getElementById(k).value = "";
+        });
     });
 }
 
 // HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI
 function updateAdminStats() {
     let u=0, f=0, b=0;
-    Object.values(devices).forEach(d => { 
+    let deviceList = Object.values(devices);
+    if (deviceList.length === 0) return;
+
+    deviceList.forEach(d => { 
         if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; 
     });
     
     let statsDiv = document.getElementById("quick-stats");
     if(statsDiv) {
         statsDiv.innerHTML = `
-            • Hiệu suất: <b style="color:#2ecc71;">${Math.round((u/Object.keys(devices).length)*100) || 0}%</b><br>
+            • Hiệu suất: <b style="color:#2ecc71;">${Math.round((u/deviceList.length)*100) || 0}%</b><br>
             • Đang dùng: <b style="color:#f1c40f;">${u} máy</b><br>
             • Sẵn sàng: <b style="color:#00f2fe;">${f} máy</b>
         `;
