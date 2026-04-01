@@ -63,6 +63,8 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <input id="new-id" placeholder="ID MÁY (VD: TB011)">
                 <input id="new-name" placeholder="TÊN MÁY MỚI">
+                <input id="new-img" style="grid-column: span 2;" placeholder="DÁN LINK ẢNH THIẾT BỊ (URL ONLINE)">
+                
                 <input id="new-usage" style="grid-column: span 2;" placeholder="CÔNG DỤNG CHI TIẾT">
                 <input id="new-manual" style="grid-column: span 2;" placeholder="QUY TRÌNH VẬN HÀNH">
             </div>
@@ -181,34 +183,45 @@
 
         function formatTime(ms) { if(!ms) return "0p 0s"; let s = Math.floor(ms/1000); return Math.floor(s/60) + "p " + (s % 60) + "s"; }
 
-        // HÀM CẬP NHẬT THÔNG TIN MÁY (KHÔNG CẦN CODE) - CHÈN THÊM
+        // HÀM CẬP NHẬT THÔNG TIN MÁY CÓ THÊM ẢNH (CHÈN THÊM)
         function updateDeviceSystem() {
             const id = document.getElementById("new-id").value.trim().toUpperCase();
             const name = document.getElementById("new-name").value.trim();
+            const img = document.getElementById("new-img").value.trim(); // Lấy link ảnh
             const usage = document.getElementById("new-usage").value.trim();
             const manual = document.getElementById("new-manual").value.trim();
 
             if (!id || !name) return alert("⚠️ Vui lòng nhập ID và Tên máy!");
 
             const updates = {};
-            updates['/devices/' + id] = { name: name, status: devices[id]?.status || "Trống", user: "", total: devices[id]?.total || 0 };
+            // Cập nhật devices có thêm thuộc tính image
+            updates['/devices/' + id] = { 
+                name: name, 
+                status: devices[id]?.status || "Trống", 
+                user: "", 
+                total: devices[id]?.total || 0,
+                image: img || "" // Lưu link ảnh vào database
+            };
             updates['/deviceManuals/' + id] = { usage: usage || "Chưa cập nhật", manual: manual || "Chưa có quy trình" };
 
             db.ref().update(updates).then(() => {
                 alert("✅ Đã cập nhật thiết bị " + name + " thành công!");
-                ["new-id", "new-name", "new-usage", "new-manual"].forEach(k => document.getElementById(k).value = "");
+                ["new-id", "new-name", "new-img", "new-usage", "new-manual"].forEach(k => document.getElementById(k).value = "");
             });
         }
 
         // HÀM CẬP NHẬT BIỂU ĐỒ (CHÈN THÊM)
         function updateAdminStats() {
             let u=0, f=0, b=0;
-            Object.values(devices).forEach(d => { 
+            let deviceList = Object.values(devices);
+            if (deviceList.length === 0) return;
+            
+            deviceList.forEach(d => { 
                 if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; 
             });
             
             document.getElementById("quick-stats").innerHTML = `
-                • Hiệu suất Lab: <b style="color:#2ecc71;">${Math.round((u/Object.keys(devices).length)*100) || 0}%</b><br>
+                • Hiệu suất Lab: <b style="color:#2ecc71;">${Math.round((u/deviceList.length)*100) || 0}%</b><br>
                 • Đang vận hành: <b style="color:#f1c40f;">${u} máy</b><br>
                 • Sẵn sàng phục vụ: <b style="color:#00f2fe;">${f} máy</b>
             `;
@@ -222,7 +235,7 @@
             });
         }
 
-        // GIỮ NGUYÊN LOGIC RENDER CỦA BẠN
+        // GIỮ NGUYÊN LOGIC RENDER CỦA BẠN (CẬP NHẬT PHẦN HIỂN THỊ ẢNH)
         function render() {
             let keyword = document.getElementById("search").value.toLowerCase();
             let listDiv = document.getElementById("list"); listDiv.innerHTML = "";
@@ -235,6 +248,9 @@
                 let q = queues[id] || [];
                 let queueHtml = q.length > 0 ? `<div style="margin-top:5px; background:rgba(243,156,18,0.1); padding:5px; border-radius:8px;"><small style="color:#f39c12; font-weight:bold;">📅 ĐẶT TRƯỚC: ${q.length} NGƯỜI</small><br><small style="font-size:10px;">➔ ${q[0].userName}: ${q[0].bookTime}</small></div>` : "";
 
+                // CHÈN THÊM LOGIC CHỌN ẢNH: Ưu tiên d.image từ Cloud
+                let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
+
                 let devEl = document.createElement("div"); devEl.className = "device";
                 devEl.innerHTML = `
                     <div class="device-info">
@@ -246,7 +262,7 @@
                         <button class="fix" onclick="fix('${id}')">✔ RESET MÁY</button>
                     </div>
                     <div class="device-media">
-                        <img src="images/${id}.jpg" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
+                        <img src="${imgSource}" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
                         <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')"></div>
                     </div>`;
                 listDiv.appendChild(devEl);
@@ -263,7 +279,7 @@
             Object.entries(queues).forEach(([id, list]) => {
                 list.forEach(item => { all.push({ name: devices[id]?.name || id, user: item.userName, time: item.bookTime, est: item.estimated }); });
             });
-            if (all.length === 0) { tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Chưa có lịch đặt</td></tr>"; return; }
+            if (all.length === 0) { tableBody.innerHTML = "<tr><td colspan="4" style="text-align:center;">Chưa có lịch đặt</td></tr>"; return; }
             tableBody.innerHTML = all.map(b => `<tr><td style="color:#f39c12;">${b.name}</td><td>${b.user}</td><td style="color:#2ecc71;">${b.time}</td><td>${b.est}</td></tr>`).join("");
         }
 
