@@ -3,82 +3,63 @@ const firebaseConfig = {
     databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com"
 };
 
-// Khởi tạo Firebase nếu chưa có
 if (!firebase.apps.length) {
     firebase.initializeApp(firebaseConfig);
 }
 const db = firebase.database();
 
-// KHO DỮ LIỆU CÔNG DỤNG (THÊM MỚI ĐỂ BÁO CÁO UTT)
-const deviceManuals = {
-    "TB001": { usage: "Sấy khô cốt liệu, mẫu vật liệu và dụng cụ thí nghiệm ở nhiệt độ chuẩn." },
-    "TB002": { usage: "Mô phỏng tác động tải trọng xe để đánh giá khả năng kháng lún mặt đường." },
-    "TB003": { usage: "Xác định độ ổn định và độ dẻo Marshall của bê tông nhựa." },
-    "TB004": { usage: "Chế tạo mẫu bê tông nhựa chuẩn bằng phương pháp đầm va đập." },
-    "TB005": { usage: "Xác định tỷ lệ sáp (Parafin) để đánh giá độ giòn/mềm của nhựa đường." },
-    "TB006": { usage: "Đo độ dẻo và khả năng kéo dài kết dính của nhựa khi chịu lực." },
-    "TB007": { usage: "Đo độ nhớt để xác định nhiệt độ trộn và rải tối ưu ngoài công trường." },
-    "TB008": { usage: "Đánh giá mức độ lão hóa của nhựa đường dưới tác động nhiệt." },
-    "TB009": { usage: "Cắt mẫu bê tông lớn thành các mẫu thử chuẩn hình khối/trụ." },
-    "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn." }
-};
-
-// LẮNG NGHE BIẾN ĐỘNG TỪ USER (Tự động cập nhật khi điện thoại quét mã)
-db.ref('devices').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-        devices = data; // Ghi đè biến devices bằng dữ liệu Cloud
-        render();       // Gọi hàm vẽ lại của bạn
+// LẮNG NGHE DỮ LIỆU CÔNG DỤNG TỪ CLOUD (MỚI: Để Admin sửa được trên web)
+let deviceManuals = {};
+db.ref('deviceManuals').on('value', (snapshot) => {
+    if (snapshot.val()) {
+        deviceManuals = snapshot.val();
+        render(); 
     }
 });
 
-// Lắng nghe lịch sử từ Cloud
+// LẮNG NGHE BIẾN ĐỘNG TỪ USER
+db.ref('devices').on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+        devices = data; 
+        render(); 
+        updateAdminStats(); // Cập nhật biểu đồ thống kê
+    }
+});
+
 db.ref('history').on('value', (snapshot) => {
     const histData = snapshot.val();
     if (histData) {
         localStorage.setItem("history", JSON.stringify(histData));
-        renderHistory(); // Gọi hàm hiển thị lịch sử của bạn
+        renderHistory(); 
     }
 });
 
-// MỚI CẬP NHẬT: Lắng nghe lịch đặt trước (queues) từ Cloud để báo Admin ngay lập tức
 db.ref('queues').on('value', (snapshot) => {
     const queueData = snapshot.val();
     if (queueData) {
         localStorage.setItem("queues", JSON.stringify(queueData));
-        render(); // Vẽ lại để cập nhật danh sách đặt lịch lẻ
-        renderBookingTable(); // Vẽ lại Bảng tổng hợp dữ liệu (MỚI THÊM)
+        render(); 
+        renderBookingTable(); 
     }
 });
+
 // =======================================================
 
-// 1. Kiểm tra quyền admin (GIỮ NGUYÊN)
 if(localStorage.getItem("role") !== "admin") {
     location.href = "./login.html";
 }
 
-// 2. Dữ liệu 10 thiết bị (Khởi tạo ban đầu)
-let devices = JSON.parse(localStorage.getItem("devices")) || {
-    "TB001": { name: "Tủ sấy", status: "Trống", user: "", total: 0 },
-    "TB002": { name: "Hằn lún bánh xe", status: "Trống", user: "", total: 0 },
-    "TB003": { name: "Marshall", status: "Trống", user: "", total: 0 },
-    "TB004": { name: "Đầm BTN", status: "Trống", user: "", total: 0 },
-    "TB005": { name: "Parafin", status: "Trống", user: "", total: 0 },
-    "TB006": { name: "Kéo dài nhựa", status: "Trống", user: "", total: 0 },
-    "TB007": { name: "Brookfield", status: "Trống", user: "", total: 0 },
-    "TB008": { name: "Tổn thất nhựa", status: "Trống", user: "", total: 0 },
-    "TB009": { name: "Cắt bê tông", status: "Trống", user: "", total: 0 },
-    "TB010": { name: "Bảo dưỡng bê tông", status: "Trống", user: "", total: 0 }
-};
+let devices = {};
+let adminChart = null; // Biến lưu trữ biểu đồ
 
-// 3. Định dạng thời gian (GIỮ NGUYÊN)
 function formatTime(ms) {
     if(!ms) return "0p 0s";
     let s = Math.floor(ms/1000);
     return Math.floor(s/60) + "p " + (s % 60) + "s";
 }
 
-// 4. Hiển thị danh sách thiết bị (ĐÃ CẬP NHẬT LỊCH ĐẶT CHI TIẾT)
+// 4. HIỂN THỊ DANH SÁCH THIẾT BỊ
 function render() {
     let searchInput = document.getElementById("search");
     let keyword = searchInput ? searchInput.value.toLowerCase() : "";
@@ -115,7 +96,7 @@ function render() {
             <div class="device-info">
                 <b>${d.name}</b> (${id})
                 ${queueHtml}
-                <p style="margin:4px 0; font-size:11px; color:#888; line-height:1.2;">${deviceManuals[id]?.usage || ""}</p>
+                <p style="margin:4px 0; font-size:11px; color:#888; line-height:1.2;">${deviceManuals[id]?.usage || "Chưa cập nhật công dụng..."}</p>
                 <span class="badge ${color}">${d.status}</span><br>
                 <small>ND: <b>${d.user || "Trống"}</b> | Tổng: ${formatTime(d.total)}</small><br>
                 <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
@@ -132,17 +113,64 @@ function render() {
     });
 }
 
-// 5. HIỂN THỊ LỊCH SỬ (GIỮ NGUYÊN)
+// HÀM MỚI 1: CẬP NHẬT THÔNG TIN THIẾT BỊ (KHÔNG CẦN CODE)
+function updateDeviceSystem() {
+    const id = document.getElementById("new-id").value.trim().toUpperCase();
+    const name = document.getElementById("new-name").value.trim();
+    const usage = document.getElementById("new-usage").value.trim();
+    const manual = document.getElementById("new-manual").value.trim();
+
+    if (!id || !name) return alert("⚠️ Vui lòng nhập ID và Tên máy!");
+
+    const updates = {};
+    updates['/devices/' + id] = { 
+        name: name, 
+        status: devices[id]?.status || "Trống", 
+        user: "", 
+        total: devices[id]?.total || 0 
+    };
+    updates['/deviceManuals/' + id] = { 
+        usage: usage || "Đang cập nhật...", 
+        manual: manual || "Liên hệ cán bộ phòng Lab." 
+    };
+
+    db.ref().update(updates).then(() => {
+        alert("✅ Đã cập nhật hệ thống cho: " + name);
+        ["new-id", "new-name", "new-usage", "new-manual"].forEach(k => document.getElementById(k).value = "");
+    });
+}
+
+// HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI
+function updateAdminStats() {
+    let u=0, f=0, b=0;
+    Object.values(devices).forEach(d => { 
+        if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; 
+    });
+    
+    let statsDiv = document.getElementById("quick-stats");
+    if(statsDiv) {
+        statsDiv.innerHTML = `
+            • Hiệu suất: <b style="color:#2ecc71;">${Math.round((u/Object.keys(devices).length)*100) || 0}%</b><br>
+            • Đang dùng: <b style="color:#f1c40f;">${u} máy</b><br>
+            • Sẵn sàng: <b style="color:#00f2fe;">${f} máy</b>
+        `;
+    }
+
+    const ctx = document.getElementById('adminChart');
+    if (!ctx) return;
+    if (adminChart) adminChart.destroy();
+    adminChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: { datasets: [{ data: [u, f, b], backgroundColor: ['#f1c40f', '#2ecc71', '#e74c3c'], borderWidth: 0 }] },
+        options: { cutout: '75%', plugins: { legend: { display: false } } }
+    });
+}
+
 function renderHistory() {
     let history = JSON.parse(localStorage.getItem("history")) || [];
     let historyDiv = document.getElementById("history-list");
     if(!historyDiv) return;
-
-    if(history.length === 0) {
-        historyDiv.innerHTML = "Chưa có dữ liệu lịch sử.";
-        return;
-    }
-
+    if(history.length === 0) { historyDiv.innerHTML = "Chưa có dữ liệu."; return; }
     historyDiv.innerHTML = history.slice(-10).reverse().map(h => `
         <div style="font-size:13px; border-bottom:1px solid #eee; padding:8px 0; color:#333;">
             <b style="color:#4a6cf7;">${h.device}</b> - 👤 ${h.user}<br>
@@ -151,12 +179,10 @@ function renderHistory() {
     `).join("");
 }
 
-// ===== HÀM MỚI: HIỂN THỊ BẢNG GHI DỮ LIỆU TỔNG HỢP (DÀNH CHO PITCHING) =====
 function renderBookingTable() {
     let queues = JSON.parse(localStorage.getItem("queues")) || {};
     let tableBody = document.getElementById("booking-table-content");
     if (!tableBody) return;
-
     let allBookings = [];
     Object.entries(queues).forEach(([deviceId, list]) => {
         list.forEach(item => {
@@ -168,12 +194,10 @@ function renderBookingTable() {
             });
         });
     });
-
     if (allBookings.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; padding:15px; color:#888;'>Chưa có dữ liệu đặt lịch</td></tr>";
+        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Trống</td></tr>";
         return;
     }
-
     tableBody.innerHTML = allBookings.map(b => `
         <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); font-size:13px;">
             <td style="padding:10px; color:#f39c12;">${b.deviceName}</td>
@@ -184,7 +208,6 @@ function renderBookingTable() {
     `).join("");
 }
 
-// 6. PHÓNG TO QR (GIỮ NGUYÊN)
 function zoomQR(id, name) {
     const modalName = document.getElementById("modal-name");
     const bigQrDiv = document.getElementById("big-qr");
@@ -202,31 +225,25 @@ function closeQR() {
     if(modal) modal.style.display = "none";
 }
 
-// 7. CÁC HÀM ĐIỀU KHIỂN
 function fix(id) { 
     devices[id].status = "Trống"; 
     devices[id].user = ""; 
-    devices[id].start = null; 
     save(); 
 }
 
 function save() { 
     localStorage.setItem("devices", JSON.stringify(devices)); 
     db.ref('devices').set(devices); 
-    render(); 
-    renderHistory();
 }
 
 function resetAll() {
-    if(confirm("Reset tất cả trạng thái và xóa lịch sử?")) {
+    if(confirm("Xác nhận reset toàn bộ hệ thống?")) {
         Object.keys(devices).forEach(id => { 
-            devices[id].status = "Trống"; 
-            devices[id].user = "";
-            devices[id].total = 0; 
+            devices[id].status = "Trống"; devices[id].user = ""; devices[id].total = 0; 
         });
-        localStorage.removeItem("history");
+        db.ref('devices').set(devices);
         db.ref('history').remove();
-        save();
+        db.ref('queues').remove();
     }
 }
 
@@ -235,19 +252,14 @@ function logout() {
     location.href = "./login.html"; 
 }
 
-// 8. TỰ ĐỘNG CẬP NHẬT (GIỮ NGUYÊN)
 window.addEventListener("storage", () => {
-    devices = JSON.parse(localStorage.getItem("devices"));
     render();
     renderHistory();
     renderBookingTable();
 });
 
-setInterval(() => {
-    renderHistory();
-}, 2000);
+setInterval(() => { renderHistory(); }, 2000);
 
-// Khởi chạy
 render();
 renderHistory();
 renderBookingTable();
