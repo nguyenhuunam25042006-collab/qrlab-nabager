@@ -50,8 +50,9 @@ if(localStorage.getItem("role") !== "admin") {
     location.href = "./login.html";
 }
 
-let devices = {};
-let adminChart = null; // Biến lưu trữ biểu đồ
+// KHỞI TẠO DỮ LIỆU (Tránh lỗi chia cho 0 khi chưa tải xong data)
+let devices = JSON.parse(localStorage.getItem("devices")) || {};
+let adminChart = null; 
 
 function formatTime(ms) {
     if(!ms) return "0p 0s";
@@ -90,7 +91,7 @@ function render() {
             queueHtml = `<br><small style="color:#888;">(Chưa có lịch đặt)</small>`;
         }
 
-        // LOGIC HIỂN THỊ ẢNH: Ưu tiên link từ database, không có mới dùng images/ID.jpg
+        // ƯU TIÊN LẤY ẢNH TỪ LINK ADMIN DÁN, NẾU KHÔNG CÓ DÙNG ẢNH MẶC ĐỊNH
         let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
 
         let devEl = document.createElement("div");
@@ -116,13 +117,13 @@ function render() {
     });
 }
 
-// HÀM MỚI 1: CẬP NHẬT THÔNG TIN THIẾT BỊ (BỔ SUNG CẬP NHẬT ẢNH)
+// HÀM MỚI 1: CẬP NHẬT THÔNG TIN THIẾT BỊ (HỖ TRỢ CẬP NHẬT ẢNH QUA LINK)
 function updateDeviceSystem() {
     const id = document.getElementById("new-id").value.trim().toUpperCase();
     const name = document.getElementById("new-name").value.trim();
-    const imgUrl = document.getElementById("new-img") ? document.getElementById("new-img").value.trim() : "";
     const usage = document.getElementById("new-usage").value.trim();
     const manual = document.getElementById("new-manual").value.trim();
+    const imgUrl = document.getElementById("new-img") ? document.getElementById("new-img").value.trim() : "";
 
     if (!id || !name) return alert("⚠️ Vui lòng nhập ID và Tên máy!");
 
@@ -132,7 +133,7 @@ function updateDeviceSystem() {
         status: devices[id]?.status || "Trống", 
         user: "", 
         total: devices[id]?.total || 0,
-        image: imgUrl || "" // Lưu link ảnh mới vào đây
+        image: imgUrl || "" 
     };
     updates['/deviceManuals/' + id] = { 
         usage: usage || "Đang cập nhật...", 
@@ -141,26 +142,26 @@ function updateDeviceSystem() {
 
     db.ref().update(updates).then(() => {
         alert("✅ Đã cập nhật hệ thống cho: " + name);
-        ["new-id", "new-name", "new-img", "new-usage", "new-manual"].forEach(k => {
+        ["new-id", "new-name", "new-usage", "new-manual", "new-img"].forEach(k => {
             if(document.getElementById(k)) document.getElementById(k).value = "";
         });
     });
 }
 
-// HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI
+// HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI (FIX LỖI CHIA CHO 0)
 function updateAdminStats() {
     let u=0, f=0, b=0;
-    let deviceList = Object.values(devices);
-    if (deviceList.length === 0) return;
+    let deviceCount = Object.keys(devices).length;
+    if (deviceCount === 0) return;
 
-    deviceList.forEach(d => { 
+    Object.values(devices).forEach(d => { 
         if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; 
     });
     
     let statsDiv = document.getElementById("quick-stats");
     if(statsDiv) {
         statsDiv.innerHTML = `
-            • Hiệu suất: <b style="color:#2ecc71;">${Math.round((u/deviceList.length)*100) || 0}%</b><br>
+            • Hiệu suất: <b style="color:#2ecc71;">${Math.round((u/deviceCount)*100) || 0}%</b><br>
             • Đang dùng: <b style="color:#f1c40f;">${u} máy</b><br>
             • Sẵn sàng: <b style="color:#00f2fe;">${f} máy</b>
         `;
