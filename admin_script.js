@@ -8,7 +8,7 @@ if (!firebase.apps.length) {
 }
 const db = firebase.database();
 
-// LẮNG NGHE DỮ LIỆU CÔNG DỤNG TỪ CLOUD
+// LẮNG NGHE DỮ LIỆU CÔNG DỤNG TỪ CLOUD (MỚI: Để Admin sửa được trên web)
 let deviceManuals = {};
 db.ref('deviceManuals').on('value', (snapshot) => {
     if (snapshot.val()) {
@@ -50,7 +50,7 @@ if(localStorage.getItem("role") !== "admin") {
     location.href = "./login.html";
 }
 
-// KHỞI TẠO DỮ LIỆU
+// KHỞI TẠO DỮ LIỆU (Tránh lỗi chia cho 0 khi chưa tải xong data)
 let devices = JSON.parse(localStorage.getItem("devices")) || {};
 let adminChart = null; 
 
@@ -170,7 +170,7 @@ function updateAdminStats() {
     if(statsDiv) {
         statsDiv.innerHTML = `
             • Hiệu suất Lab: <b style="color:#2ecc71;">${Math.round((u/deviceCount)*100) || 0}%</b><br>
-            • Đang vận hành: <b style="color:#f1c40f;">${u} máy</b><br>
+            • Đang dùng: <b style="color:#f1c40f;">${u} máy</b><br>
             • Sẵn sàng phục vụ: <b style="color:#00f2fe;">${f} máy</b>
         `;
     }
@@ -254,13 +254,28 @@ function save() {
 }
 
 function resetAll() {
-    if(confirm("Xác nhận reset toàn bộ hệ thống?")) {
+    if(confirm("Xác nhận reset toàn bộ hệ thống? Việc này sẽ xóa sạch nhật ký!")) {
+        // 1. Reset trạng thái máy cục bộ
         Object.keys(devices).forEach(id => { 
-            devices[id].status = "Trống"; devices[id].user = ""; devices[id].total = 0; 
+            devices[id].status = "Trống"; 
+            devices[id].user = ""; 
+            devices[id].total = 0; 
         });
+
+        // 2. XÓA LOCALSTORAGE (Để xóa sạch nhật ký hiện tại trên trình duyệt)
+        localStorage.removeItem("history");
+        localStorage.removeItem("queues");
+
+        // 3. Đẩy lên Firebase Cloud
         db.ref('devices').set(devices);
         db.ref('history').remove();
         db.ref('queues').remove();
+
+        // 4. Vẽ lại giao diện ngay để thấy kết quả
+        render();
+        renderHistory();
+        renderBookingTable();
+        updateAdminStats();
     }
 }
 
