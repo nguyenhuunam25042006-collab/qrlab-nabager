@@ -25,7 +25,16 @@ const deviceManuals = {
     "TB010": { usage: "Tạo môi trường nhiệt - ẩm tiêu chuẩn để mẫu bê tông thủy hóa hoàn toàn.", manual: "Kiểm tra mực nước và nhiệt độ bể bảo dưỡng ngày (27±2°C)." }
 };
 
-// ===== 1. DỮ LIỆU THIẾT BỊ (Nên có khung mặc định để tránh lỗi undefined) =====
+// --- CHÈN THÊM: LẮNG NGHE CÔNG DỤNG TỪ CLOUD ---
+db.ref('deviceManuals').on('value', (snapshot) => {
+    if(snapshot.val()) {
+        Object.assign(deviceManuals, snapshot.val());
+        if(currentDevice) showDevice(currentDevice);
+    }
+});
+// ----------------------------------------------
+
+// ===== 1. DỮ LIỆU THIẾT BỊ =====
 let devices = JSON.parse(localStorage.getItem("devices")) || {
     "TB001": {name:"Tủ sấy", status:"Trống", user:"", start:null, total:0},
     "TB002": {name:"Hằn lún bánh xe", status:"Trống", user:"", start:null, total:0},
@@ -103,12 +112,16 @@ function startScan() {
     }).catch(err => alert("❌ Lỗi Camera: " + err));
 }
 
-// ===== 3. HIỂN THỊ THIẾT BỊ (TỐI ƯU CẬP NHẬT) =====
+// ===== 3. HIỂN THỊ THIẾT BỊ (CHÈN THÊM LOGIC ẢNH) =====
 function showDevice(id) {
     let d = devices[id];
     if(!d) return;
+
+    // --- CHÈN THÊM: ƯU TIÊN LẤY ẢNH TỪ CLOUD ---
+    let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
+    // ------------------------------------------
+
     let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
-    
     let timeText = d.start ? "⏱ " + formatTime(Date.now() - d.start) : "🕒 " + formatTime(d.total || 0);
 
     const resultDiv = document.getElementById("result");
@@ -118,7 +131,8 @@ function showDevice(id) {
 
     resultDiv.innerHTML = `
         <div style="text-align:center; animation: fadeIn 0.5s ease;">
-            <img src="images/${id}.jpg" style="width:180px; height:180px; object-fit:cover; border-radius:20px; margin-bottom:10px; border: 2px solid var(--glass-border);" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+            <img src="${imgSource}" style="width:180px; height:180px; object-fit:cover; border-radius:20px; margin-bottom:10px; border: 2px solid var(--glass-border);" onerror="this.src='https://via.placeholder.com/150?text=No+Photo'">
+            
             <h3 style="color: var(--primary-neon); margin: 10px 0;">${d.name}</h3>
             <span class="badge ${colorClass}">${d.status}</span>
             <p style="margin-top:15px; font-size: 0.9em; color: rgba(255,255,255,0.7);">👤 NGƯỜI DÙNG: <b style="color: white;">${d.user || "ĐANG TRỐNG"}</b></p>
@@ -135,18 +149,15 @@ function showDevice(id) {
     renderQueueInfo(id);
 }
 
-// ===== 4. ĐIỀU KHIỂN VẬN HÀNH =====
+// ===== 4. ĐIỀU KHIỂN VẬN HÀNH (GIỮ NGUYÊN) =====
 function useDevice() {
     if(!currentDevice) return alert("⚠️ Vui lòng quét mã QR trước!");
     let nameInput = document.getElementById("user-name");
     let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên người sử dụng:");
-    
     if(!name) return;
-    
     let d = devices[currentDevice];
     if(d.status === "Đang sử dụng") return alert("❌ Thiết bị này đang có người sử dụng!");
     if(d.status === "Bị hỏng") return alert("❌ Thiết bị đang hỏng, không thể sử dụng!");
-    
     d.status = "Đang sử dụng"; 
     d.user = name; 
     d.start = Date.now();
@@ -157,7 +168,6 @@ function stopDevice() {
     if(!currentDevice) return;
     let d = devices[currentDevice];
     if(d.status !== "Đang sử dụng") return;
-
     if(d.start) {
         let used = Date.now() - d.start;
         let history = JSON.parse(localStorage.getItem("history")) || [];
@@ -169,7 +179,6 @@ function stopDevice() {
         });
         localStorage.setItem("history", JSON.stringify(history));
         db.ref('history').set(history);
-
         d.total += used; 
         d.start = null;
     }
@@ -186,7 +195,7 @@ function errorDevice() {
     }
 }
 
-// ===== 5. BIỂU ĐỒ TRẠNG THÁI =====
+// ===== 5. BIỂU ĐỒ TRẠNG THÁI (GIỮ NGUYÊN) =====
 function updateChart() {
     let u=0, f=0, b=0;
     Object.values(devices).forEach(d => { 
@@ -194,10 +203,8 @@ function updateChart() {
         else if(d.status==="Bị hỏng") b++; 
         else f++; 
     });
-    
     let ctx = document.getElementById("chart");
     if(!ctx) return;
-
     if(chart) chart.destroy();
     chart = new Chart(ctx, {
         type: "doughnut",
@@ -210,8 +217,7 @@ function updateChart() {
             }] 
         },
         options: { 
-            responsive: true, 
-            maintainAspectRatio: false,
+            responsive: true, maintainAspectRatio: false,
             plugins: { legend: { labels: { color: 'white' } } }
         }
     });
@@ -234,7 +240,7 @@ setInterval(() => {
 checkUrl();
 updateChart();
 
-// ===== PHẦN MỞ RỘNG: LỊCH ĐĂNG KÝ (ĐÃ ĐỒNG BỘ CLOUD ĐỂ BÁO ADMIN) =====
+// ===== PHẦN MỞ RỘNG: LỊCH ĐĂNG KÝ (GIỮ NGUYÊN) =====
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
 db.ref('queues').on('value', (snapshot) => {
     if(snapshot.val()) {
@@ -246,7 +252,7 @@ db.ref('queues').on('value', (snapshot) => {
 
 function saveQueue() { 
     localStorage.setItem("queues", JSON.stringify(queues)); 
-    db.ref('queues').set(queues); // Đẩy lên Cloud báo Admin
+    db.ref('queues').set(queues);
 }
 
 function renderQueueInfo(id) {
@@ -272,27 +278,19 @@ function joinQueue() {
     if(!currentDevice) return alert("⚠️ Hãy quét QR thiết bị để đặt lịch!");
     let nameInput = document.getElementById("user-name");
     let name = (nameInput && nameInput.value) ? nameInput.value : prompt("Nhập tên để đặt lịch sử dụng:");
-    
     if(!name) return;
-
-    // Nhập Ngày/Tháng/Năm và Giờ
     let dateTime = prompt("Nhập Ngày & Giờ muốn sử dụng (Ví dụ: 14:30 05/04/2026):", 
         new Date().getHours() + ":" + new Date().getMinutes() + " " + new Date().toLocaleDateString('vi-VN'));
     if(!dateTime) return;
-
-    // Nhập thời gian dùng bao lâu
     let duration = prompt("Bạn dự kiến sử dụng trong bao lâu? (VD: 30 phút, 1 tiếng...)", "1 tiếng");
     if(!duration) return;
-
     if(!queues[currentDevice]) queues[currentDevice] = [];
     if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có tên trong danh sách đăng ký của máy này!");
-    
     queues[currentDevice].push({ 
         userName: name, 
-        bookTime: dateTime, // Lưu ngày tháng năm giờ cụ thể
-        estimated: duration  // Lưu thời gian dự kiến dùng
+        bookTime: dateTime,
+        estimated: duration 
     });
-    
     saveQueue();
     alert(`✅ Đã đặt lịch thành công cho: ${name} vào lúc ${dateTime}`);
     showDevice(currentDevice);
@@ -310,3 +308,7 @@ function checkInFromQueue() {
         save();
     }
 }
+
+// Khởi chạy
+renderHistory();
+renderBookingTable(); // Nếu bro có hàm này ở đâu đó
