@@ -106,7 +106,6 @@ function showDevice(id) {
     let d = devices[id];
     if(!d) return;
 
-    // Ưu tiên lấy Link ảnh Admin đã dán, nếu không có mới lấy file images/id.jpg
     let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
 
     let colorClass = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
@@ -228,7 +227,7 @@ setInterval(() => {
 checkUrl();
 updateChart();
 
-// ===== PHẦN MỞ RỘNG: LỊCH ĐĂNG KÝ (GIỮ NGUYÊN) =====
+// ===== PHẦN MỞ RỘNG: LỊCH ĐĂNG KÝ =====
 let queues = JSON.parse(localStorage.getItem("queues")) || {};
 db.ref('queues').on('value', (snapshot) => {
     if(snapshot.val()) {
@@ -249,12 +248,14 @@ function renderQueueInfo(id) {
         let qHtml = `<div style="margin-top:15px; padding:12px; background:rgba(0,242,254,0.05); border-radius:15px; border:1px dashed var(--primary-neon);">
             <p style="margin:0; font-size:0.85em; color:var(--primary-neon); font-weight:bold;">📅 DANH SÁCH LỊCH ĐÃ ĐẶT (${q.length}):</p>
             <div style="margin-top:5px;">
-                ${q.map((item, index) => `
+                ${q.map((item, index) => {
+                    let statusColor = item.status === "Đã duyệt" ? "#2ecc71" : "#f1c40f";
+                    return `
                     <div style="font-size:0.8em; color:rgba(255,255,255,0.8); border-bottom:1px solid rgba(255,255,255,0.1); padding:5px 0;">
-                        ${index+1}. <b>${item.userName}</b> <br>
+                        ${index+1}. <b>${item.userName}</b> - <span style="color:${statusColor}; font-weight:bold;">[${item.status || "Chờ duyệt"}]</span><br>
                         ⏱ Lịch: <span style="color:#00f2fe;">${item.bookTime}</span> (Dùng: ${item.estimated})
-                    </div>
-                `).join("")}
+                    </div>`;
+                }).join("")}
             </div>
         </div>`;
     const resultDiv = document.getElementById("result");
@@ -274,25 +275,37 @@ function joinQueue() {
     if(!duration) return;
     if(!queues[currentDevice]) queues[currentDevice] = [];
     if(queues[currentDevice].some(q => q.userName === name)) return alert("❌ Bạn đã có tên trong danh sách đăng ký của máy này!");
+    
     queues[currentDevice].push({ 
         userName: name, 
         bookTime: dateTime,
-        estimated: duration 
+        estimated: duration,
+        status: "Chờ duyệt" // Mặc định khi đặt là chờ duyệt
     });
+    
     saveQueue();
-    alert(`✅ Đã đặt lịch thành công cho: ${name} vào lúc ${dateTime}`);
+    alert(`✅ Đã gửi yêu cầu đặt lịch! Vui lòng chờ Admin phê duyệt.`);
     showDevice(currentDevice);
 }
 
 function checkInFromQueue() {
     if(!currentDevice || !queues[currentDevice] || queues[currentDevice].length === 0) 
         return alert("⚠️ Không có ai trong lịch đăng ký!");
-    let nextUser = queues[currentDevice][0].userName;
-    if(confirm(`Xác nhận quyền sử dụng cho: ${nextUser}?`)) {
+    
+    let firstBooking = queues[currentDevice][0];
+    
+    // Kiểm tra trạng thái đã được Admin duyệt hay chưa
+    if(firstBooking.status !== "Đã duyệt") {
+        return alert("🚫 Lịch của bạn chưa được Admin phê duyệt. Vui lòng liên hệ cán bộ phòng Lab!");
+    }
+
+    if(confirm(`Admin đã phê duyệt! Xác nhận bắt đầu sử dụng cho: ${firstBooking.userName}?`)) {
         queues[currentDevice].shift();
         saveQueue();
         let d = devices[currentDevice];
-        d.status = "Đang sử dụng"; d.user = nextUser; d.start = Date.now();
+        d.status = "Đang sử dụng"; 
+        d.user = firstBooking.userName; 
+        d.start = Date.now();
         save();
     }
 }
