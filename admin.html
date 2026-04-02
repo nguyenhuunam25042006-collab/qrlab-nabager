@@ -1,307 +1,276 @@
-// ===== 0. CẤU HÌNH FIREBASE =====
-const firebaseConfig = {
-    databaseURL: "https://qrlab-c1704-default-rtdb.firebaseio.com"
-};
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.database();
-
-// LẮNG NGHE DỮ LIỆU CÔNG DỤNG TỪ CLOUD (MỚI: Để Admin sửa được trên web)
-let deviceManuals = {};
-db.ref('deviceManuals').on('value', (snapshot) => {
-    if (snapshot.val()) {
-        deviceManuals = snapshot.val();
-        render(); 
-    }
-});
-
-// LẮNG NGHE BIẾN ĐỘNG TỪ USER
-db.ref('devices').on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data) {
-        devices = data; 
-        render(); 
-        updateAdminStats(); // Cập nhật biểu đồ thống kê
-    }
-});
-
-db.ref('history').on('value', (snapshot) => {
-    const histData = snapshot.val();
-    if (histData) {
-        localStorage.setItem("history", JSON.stringify(histData));
-        renderHistory(); 
-    }
-});
-
-db.ref('queues').on('value', (snapshot) => {
-    const queueData = snapshot.val();
-    if (queueData) {
-        localStorage.setItem("queues", JSON.stringify(queueData));
-        render(); 
-        renderBookingTable(); 
-    }
-});
-
-// =======================================================
-
-if(localStorage.getItem("role") !== "admin") {
-    location.href = "./login.html";
-}
-
-// KHỞI TẠO DỮ LIỆU (Tránh lỗi chia cho 0 khi chưa tải xong data)
-let devices = JSON.parse(localStorage.getItem("devices")) || {};
-let adminChart = null; 
-
-function formatTime(ms) {
-    if(!ms) return "0p 0s";
-    let s = Math.floor(ms/1000);
-    return Math.floor(s/60) + "p " + (s % 60) + "s";
-}
-
-// --- LOGIC GIAO DIỆN MỚI (SIDEBAR & TABS) ---
-function openTab(evt, tabName) {
-    const contents = document.getElementsByClassName("tab-content");
-    for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
-
-    const buttons = document.getElementsByClassName("tab-btn");
-    for (let i = 0; i < buttons.length; i++) buttons[i].classList.remove("active");
-
-    document.getElementById(tabName).classList.add("active");
-    evt.currentTarget.classList.add("active");
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bảng Điều Khiển Admin - QR Lab Pro</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
     
-    if(tabName === 'tab-dashboard') {
-        // Cần chút delay để Tab kịp hiện ra trước khi vẽ Chart
-        setTimeout(updateAdminStats, 100);
-    }
-}
-
-function toggleSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    const mainContent = document.getElementById("main-content");
-    sidebar.classList.toggle("collapsed");
-    mainContent.classList.toggle("expanded");
-}
-
-// 4. HIỂN THỊ DANH SÁCH THIẾT BỊ
-function render() {
-    let searchInput = document.getElementById("search");
-    let keyword = searchInput ? searchInput.value.toLowerCase() : "";
-    let listDiv = document.getElementById("list");
-    if(!listDiv) return;
-    listDiv.innerHTML = "";
-
-    let queues = JSON.parse(localStorage.getItem("queues")) || {};
-
-    Object.entries(devices).forEach(([id, d]) => {
-        if (!d.name.toLowerCase().includes(keyword) && !id.toLowerCase().includes(keyword)) return;
-
-        let color = d.status === "Đang sử dụng" ? "using" : (d.status === "Bị hỏng" ? "broken" : "free");
+    <style>
+        :root {
+            --admin-neon: #2ecc71;
+            --bg-dark: #070a0f;
+            --bg-card: #0c1017;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(46, 204, 113, 0.1);
+        }
         
-        // ƯU TIÊN LẤY ẢNH TỪ LINK ADMIN DÁN, NẾU KHÔNG CÓ DÙNG ẢNH MẶC ĐỊNH
-        let imgSource = (d.image && d.image !== "") ? d.image : `images/${id}.jpg`;
+        body { 
+            margin: 0; 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: var(--bg-dark); 
+            color: rgba(255,255,255,0.9); 
+            display: flex; 
+            min-height: 100vh; 
+            overflow-x: hidden; 
+        }
 
-        let devEl = document.createElement("div");
-        devEl.className = "device";
-        devEl.innerHTML = `
-            <div class="device-info">
-                <b>${d.name}</b> (${id})
-                <p style="margin:4px 0; font-size:11px; color:#888; line-height:1.2;">${deviceManuals[id]?.usage || "Chưa cập nhật công dụng..."}</p>
-                <span class="badge ${color}">${d.status}</span><br>
-                <small>ND: <b>${d.user || "Trống"}</b> | Tổng: ${formatTime(d.total)}</small><br>
-                <button class="fix" onclick="fix('${id}')">✔ Reset máy</button>
-            </div>
-            <div class="device-media">
-                <img src="${imgSource}" class="device-img" onerror="this.src='https://via.placeholder.com/100?text=No+Photo'">
-                <div id="qr-${id}" class="device-qr" onclick="zoomQR('${id}', '${d.name}')" title="Bấm để phóng to"></div>
-            </div>
-        `;
-        listDiv.appendChild(devEl);
+        /* SIDEBAR - THANH MENU TRÁI */
+        .sidebar {
+            width: 240px;
+            background: var(--bg-card);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 1000;
+        }
 
-        let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
-        new QRCode(document.getElementById(`qr-${id}`), { text: qrUrl, width: 100, height: 100 });
-    });
-}
+        .sidebar.collapsed { width: 70px; }
 
-// HÀM MỚI 1: CẬP NHẬT THÔNG TIN THIẾT BỊ (HỖ TRỢ CẬP NHẬT ẢNH QUA LINK)
-function updateDeviceSystem() {
-    const id = document.getElementById("new-id").value.trim().toUpperCase();
-    const name = document.getElementById("new-name").value.trim();
-    const usage = document.getElementById("new-usage").value.trim();
-    const manual = document.getElementById("new-manual").value.trim();
-    const imgUrl = document.getElementById("new-image") ? document.getElementById("new-image").value.trim() : "";
+        .sidebar-header {
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--glass-border);
+            height: 60px;
+            box-sizing: border-box;
+        }
 
-    if (!id || !name) return alert("⚠️ Vui lòng nhập ID và Tên máy!");
+        .logo-text {
+            color: var(--admin-neon);
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            white-space: nowrap;
+            transition: 0.3s;
+        }
 
-    const updates = {};
-    updates['/devices/' + id] = { 
-        name: name, 
-        status: devices[id]?.status || "Trống", 
-        user: "", 
-        total: devices[id]?.total || 0,
-        image: imgUrl || "" 
-    };
-    updates['/deviceManuals/' + id] = { 
-        usage: usage || "Đang cập nhật...", 
-        manual: manual || "Liên hệ cán bộ phòng Lab." 
-    };
+        .sidebar.collapsed .logo-text { opacity: 0; pointer-events: none; }
 
-    db.ref().update(updates).then(() => {
-        alert("✅ Đã cập nhật hệ thống cho: " + name);
-        ["new-id", "new-name", "new-usage", "new-manual", "new-image"].forEach(k => {
-            if(document.getElementById(k)) document.getElementById(k).value = "";
-        });
-    });
-}
+        .menu-toggle-btn {
+            background: none;
+            border: none;
+            color: var(--admin-neon);
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: 0.3s;
+        }
 
-// HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI (FIX LỖI CHIA CHO 0)
-function updateAdminStats() {
-    let u=0, f=0, b=0;
-    let deviceCount = Object.keys(devices).length;
-    if (deviceCount === 0) return;
+        .menu-toggle-btn:hover { transform: scale(1.1); text-shadow: 0 0 10px var(--admin-neon); }
 
-    Object.values(devices).forEach(d => { 
-        if(d.status==="Đang sử dụng") u++; else if(d.status==="Bị hỏng") b++; else f++; 
-    });
-    
-    let statsDiv = document.getElementById("quick-stats");
-    if(statsDiv) {
-        statsDiv.innerHTML = `
-            • Hiệu suất: <b style="color:#2ecc71;">${Math.round((u/deviceCount)*100) || 0}%</b><br>
-            • Đang dùng: <b style="color:#f1c40f;">${u} máy</b><br>
-            • Sẵn sàng: <b style="color:#00f2fe;">${f} máy</b>
-        `;
-    }
+        .sidebar-menu { padding: 20px 0; flex: 1; }
 
-    const ctx = document.getElementById('adminChart');
-    if (!ctx) return;
-    if (adminChart) adminChart.destroy();
-    adminChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: { datasets: [{ data: [u, f, b], backgroundColor: ['#f1c40f', '#2ecc71', '#e74c3c'], borderWidth: 0 }] },
-        options: { cutout: '75%', plugins: { legend: { display: false } } }
-    });
-}
+        .tab-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            padding: 15px 22px;
+            background: transparent;
+            color: #888;
+            border: none;
+            border-left: 4px solid transparent;
+            cursor: pointer;
+            transition: 0.3s;
+            font-size: 14px;
+        }
 
-function renderHistory() {
-    let history = JSON.parse(localStorage.getItem("history")) || [];
-    let historyDiv = document.getElementById("history-list");
-    if(!historyDiv) return;
-    if(history.length === 0) { historyDiv.innerHTML = "Chưa có dữ liệu."; return; }
-    historyDiv.innerHTML = history.slice(-10).reverse().map(h => `
-        <div style="font-size:13px; border-bottom:1px solid #eee; padding:8px 0; color:#333;">
-            <b style="color:#4a6cf7;">${h.device}</b> - 👤 ${h.user}<br>
-            <small>⏱ ${h.duration} | 📅 ${h.time}</small>
+        .tab-btn:hover { background: rgba(255,255,255,0.03); color: white; }
+
+        .tab-btn.active {
+            color: var(--admin-neon);
+            border-left-color: var(--admin-neon);
+            background: rgba(46, 204, 113, 0.07);
+            font-weight: bold;
+        }
+
+        .tab-btn .icon { margin-right: 15px; font-size: 18px; width: 20px; text-align: center; }
+        .sidebar.collapsed .tab-btn .icon { margin-right: 0; width: 100%; }
+        .tab-btn .text { transition: 0.3s; white-space: nowrap; }
+        .sidebar.collapsed .tab-btn .text { opacity: 0; pointer-events: none; width: 0; }
+
+        .sidebar-footer { padding: 20px; border-top: 1px solid var(--glass-border); }
+
+        /* NỘI DUNG CHÍNH */
+        .main-content {
+            flex: 1;
+            margin-left: 240px;
+            padding: 30px;
+            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .main-content.expanded { margin-left: 70px; }
+
+        .header-title { 
+            text-align: center; 
+            color: var(--admin-neon); 
+            font-size: 24px; 
+            font-weight: bold; 
+            margin-bottom: 30px; 
+            text-transform: uppercase; 
+            letter-spacing: 4px; 
+            text-shadow: 0 0 15px rgba(46, 204, 113, 0.4); 
+        }
+
+        .card { 
+            background: var(--glass-bg); 
+            padding: 25px; 
+            border-radius: 20px; 
+            border: 1px solid var(--glass-border); 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
+            margin-bottom: 25px; 
+            backdrop-filter: blur(10px); 
+        }
+
+        .card h3 { margin-top: 0; color: var(--admin-neon); border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; text-transform: uppercase; font-size: 15px; letter-spacing: 1px; }
+
+        /* PHÂN CHIA TABS */
+        .tab-content { display: none; animation: fadeIn 0.4s ease; }
+        .tab-content.active { display: block; }
+
+        /* CSS CŨ ĐÃ TỐI ƯU */
+        .device { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--glass-border); gap: 15px; }
+        .device-img { width: 90px; height: 90px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); }
+        .device-qr { width: 90px; height: 90px; background: white; padding: 5px; border-radius: 8px; cursor: zoom-in; }
+        
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; border: 1px solid transparent; }
+        .free { background: rgba(46, 204, 113, 0.1); border-color: #2ecc71; color: #2ecc71; }
+        .using { background: rgba(241, 196, 15, 0.1); border-color: #f1c40f; color: #f1c40f; }
+        .broken { background: rgba(231, 76, 60, 0.1); border-color: #e74c3c; color: #e74c3c; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        th { text-align: left; padding: 12px; color: #f39c12; border-bottom: 1px solid rgba(243, 156, 18, 0.2); }
+        td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; backdrop-filter: blur(10px); }
+        .modal-content { background: white; padding: 30px; border-radius: 25px; text-align: center; color: #333; animation: zoomIn 0.3s ease; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .sidebar { left: -240px; }
+            .sidebar.open { left: 0; }
+            .main-content { margin-left: 0 !important; padding: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-text">NAB LAB PRO</div>
+            <button class="menu-toggle-btn" onclick="toggleSidebar()">&#9776;</button>
         </div>
-    `).join("");
-}
+        <div class="sidebar-menu">
+            <button class="tab-btn active" onclick="openTab(event, 'tab-dashboard')">
+                <span class="icon">📊</span><span class="text">TỔNG QUAN</span>
+            </button>
+            <button class="tab-btn" onclick="openTab(event, 'tab-devices')">
+                <span class="icon">🛠</span><span class="text">THIẾT BỊ</span>
+            </button>
+            <button class="tab-btn" onclick="openTab(event, 'tab-booking')">
+                <span class="icon">📅</span><span class="text">ĐẶT LỊCH</span>
+            </button>
+            <button class="tab-btn" onclick="openTab(event, 'tab-history')">
+                <span class="icon">🕒</span><span class="text">NHẬT KÝ</span>
+            </button>
+        </div>
+        <div class="sidebar-footer">
+            <button class="logout-btn" onclick="logout()" style="width:100%; background:rgba(231, 76, 60, 0.1); color:#e74c3c; border:1px solid #e74c3c; border-radius:10px; padding:10px; cursor:pointer;">🚪 ĐĂNG XUẤT</button>
+        </div>
+    </div>
 
-// === PHẦN THÊM MỚI: DUYỆT & TỪ CHỐI LỊCH ===
-function approveBooking(id, index) {
-    let q = JSON.parse(localStorage.getItem("queues"));
-    if(confirm("Duyệt cho sinh viên này sử dụng?")) {
-        q[id][index].status = "Đã duyệt";
-        db.ref('queues').set(q);
-    }
-}
+    <div class="main-content" id="main-content">
+        <div class="header-title">HỆ THỐNG QUẢN TRỊ VIÊN</div>
 
-function rejectBooking(id, index) {
-    let q = JSON.parse(localStorage.getItem("queues"));
-    if(confirm("Từ chối lịch này?")) {
-        q[id].splice(index, 1);
-        db.ref('queues').set(q);
-    }
-}
+        <div id="tab-dashboard" class="tab-content active">
+            <div class="card" style="display: flex; gap: 30px; align-items: center; justify-content: center; flex-wrap: wrap;">
+                <div style="width: 150px; height: 150px;">
+                    <canvas id="adminChart"></canvas>
+                </div>
+                <div id="quick-stats" style="line-height: 2; font-size: 14px;">Đang tải dữ liệu...</div>
+            </div>
+        </div>
 
-function renderBookingTable() {
-    let queues = JSON.parse(localStorage.getItem("queues")) || {};
-    let tableBody = document.getElementById("booking-table-content");
-    if (!tableBody) return;
-    let html = "";
-    Object.entries(queues).forEach(([deviceId, list]) => {
-        list.forEach((item, index) => {
-            let btns = (item.status === "Chờ duyệt" || !item.status) ? 
-                `<button onclick="approveBooking('${deviceId}', ${index})" style="background:#27ae60; color:white; border:none; padding:5px; border-radius:5px; cursor:pointer;">Duyệt</button>
-                 <button onclick="rejectBooking('${deviceId}', ${index})" style="background:#e74c3c; color:white; border:none; padding:5px; border-radius:5px; cursor:pointer;">Hủy</button>` : 
-                `<b style="color:#2ecc71;">${item.status}</b>`;
-            
-            html += `<tr>
-                <td style="color:#f39c12;">${devices[deviceId]?.name || deviceId}</td>
-                <td>${item.userName}</td>
-                <td style="color:#2ecc71;">${item.bookTime}</td>
-                <td>${item.estimated}</td>
-                <td>${btns}</td>
-            </tr>`;
-        });
-    });
-    tableBody.innerHTML = html || "<tr><td colspan='5' style='text-align:center;'>Trống</td></tr>";
-}
-// =========================================
+        <div id="tab-devices" class="tab-content">
+            <div class="card">
+                <h3>🛠 THÊM / CẬP NHẬT THIẾT BỊ</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <input id="new-id" placeholder="Mã ID (VD: TB011)">
+                    <input id="new-name" placeholder="Tên thiết bị">
+                    <input id="new-image" style="grid-column: span 2;" placeholder="Link ảnh trực tuyến (URL)">
+                    <input id="new-usage" style="grid-column: span 2;" placeholder="Mô tả công dụng">
+                    <input id="new-manual" style="grid-column: span 2;" placeholder="Quy trình vận hành">
+                </div>
+                <button class="export" onclick="updateDeviceSystem()" style="width:100%; margin-top:15px; padding:15px;">🚀 CẬP NHẬT HỆ THỐNG</button>
+            </div>
+            <div class="card">
+                <h3>📋 DANH SÁCH THIẾT BỊ</h3>
+                <input id="search" placeholder="🔍 Tìm kiếm máy..." oninput="render()">
+                <div id="list"></div>
+            </div>
+        </div>
 
-function zoomQR(id, name) {
-    const modalName = document.getElementById("modal-name");
-    const bigQrDiv = document.getElementById("big-qr");
-    const modal = document.getElementById("qrModal");
-    if(!modal || !bigQrDiv) return;
-    modalName.innerText = name + " (" + id + ")";
-    bigQrDiv.innerHTML = ""; 
-    let qrUrl = `https://nguyenhuunam25042006-collab.github.io/qrlab-nabager/index.html?id=${id}`;
-    new QRCode(bigQrDiv, { text: qrUrl, width: 280, height: 280 });
-    modal.style.display = "flex";
-}
+        <div id="tab-booking" class="tab-content">
+            <div class="card">
+                <h3>📅 DANH SÁCH ĐĂNG KÝ SỬ DỤNG</h3>
+                <div style="overflow-x: auto;">
+                    <table>
+                        <thead>
+                            <tr><th>THIẾT BỊ</th><th>NGƯỜI DÙNG</th><th>LỊCH ĐẶT</th><th>DỰ KIẾN</th></tr>
+                        </thead>
+                        <tbody id="booking-table-content"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
 
-function closeQR() {
-    const modal = document.getElementById("qrModal");
-    if(modal) modal.style.display = "none";
-}
+        <div id="tab-history" class="tab-content">
+            <div class="card">
+                <h3>🕒 LỊCH SỬ HOẠT ĐỘNG</h3>
+                <div id="history-list"></div>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="export" onclick="exportFullHistory()" style="flex:1;">📊 XUẤT FILE EXCEL</button>
+                <button class="reset" onclick="resetAll()" style="flex:1; border:1px solid #f39c12; color:#f39c12; background:none; border-radius:10px; cursor:pointer;">🔄 RESET HỆ THỐNG</button>
+            </div>
+        </div>
+    </div>
 
-function fix(id) { 
-    devices[id].status = "Trống"; 
-    devices[id].user = ""; 
-    save(); 
-}
+    <div id="qrModal" class="modal" onclick="closeQR()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <h2 id="modal-name">ID THIẾT BỊ</h2>
+            <div id="big-qr" style="display:inline-block; margin: 20px;"></div>
+            <button onclick="closeQR()" style="width:100%; padding:12px; background:#000; color:#fff; border:none; border-radius:10px; cursor:pointer;">ĐÓNG</button>
+        </div>
+    </div>
 
-function save() { 
-    localStorage.setItem("devices", JSON.stringify(devices)); 
-    db.ref('devices').set(devices); 
-}
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    
+    <script src="admin_script.js"></script>
 
-function resetAll() {
-    if(confirm("Xác nhận reset toàn bộ hệ thống? Việc này sẽ xóa sạch nhật ký!")) {
-        Object.keys(devices).forEach(id => { 
-            devices[id].status = "Trống"; devices[id].user = ""; devices[id].total = 0; 
-        });
-        localStorage.removeItem("history");
-        localStorage.removeItem("queues");
-        db.ref('devices').set(devices);
-        db.ref('history').remove();
-        db.ref('queues').remove();
-    }
-}
-
-function logout() { 
-    localStorage.removeItem("role"); 
-    location.href = "./login.html"; 
-}
-
-function exportFullHistory() {
-    let history = JSON.parse(localStorage.getItem("history")) || [];
-    if(history.length === 0) return alert("Không có nhật ký!");
-    let csv = "\uFEFFThiết bị,Người dùng,Thời gian sử dụng,Ngày tháng\n";
-    history.forEach(h => { csv += `${h.device},${h.user},${h.duration},${h.time}\n`; });
-    let blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    let link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `Nhat_Ky_Lab.csv`;
-    link.click();
-}
-
-window.addEventListener("storage", () => {
-    render();
-    renderHistory();
-    renderBookingTable();
-});
-
-render();
-renderHistory();
-renderBookingTable();
+</body>
+</html>
