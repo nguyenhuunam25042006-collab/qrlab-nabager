@@ -148,7 +148,7 @@
         .tab-content { display: none; animation: fadeIn 0.4s ease; }
         .tab-content.active { display: block; }
 
-        /* CSS HIỂN THỊ THIẾT BỊ */
+        /* CSS CŨ ĐÃ TỐI ƯU */
         .device { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--glass-border); gap: 15px; }
         .device-img { width: 90px; height: 90px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); }
         .device-qr { width: 90px; height: 90px; background: white; padding: 5px; border-radius: 8px; cursor: zoom-in; }
@@ -157,9 +157,6 @@
         .free { background: rgba(46, 204, 113, 0.1); border-color: #2ecc71; color: #2ecc71; }
         .using { background: rgba(241, 196, 15, 0.1); border-color: #f1c40f; color: #f1c40f; }
         .broken { background: rgba(231, 76, 60, 0.1); border-color: #e74c3c; color: #e74c3c; }
-
-        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); box-sizing: border-box; color: var(--admin-neon); font-size: 15px; }
-        button.export { background: linear-gradient(45deg, var(--admin-neon), #27ae60); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th { text-align: left; padding: 12px; color: #f39c12; border-bottom: 1px solid rgba(243, 156, 18, 0.2); }
@@ -171,11 +168,14 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+        /* Mobile Responsive */
         @media (max-width: 768px) {
             .sidebar { left: -240px; }
             .sidebar.open { left: 0; }
             .main-content { margin-left: 0 !important; padding: 15px; }
         }
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); box-sizing: border-box; color: var(--admin-neon); font-size: 15px; }
+        .export { background: linear-gradient(45deg, var(--admin-neon), #27ae60); color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -221,7 +221,7 @@
                 <h3>🛠 THÊM / CẬP NHẬT THIẾT BỊ</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <input id="new-id" placeholder="Mã ID (VD: TB011)">
-                    <input id="new-name" placeholder="Tên thiết thiết bị">
+                    <input id="new-name" placeholder="Tên thiết bị">
                     <input id="new-image" style="grid-column: span 2;" placeholder="Link ảnh trực tuyến (URL)">
                     <input id="new-usage" style="grid-column: span 2;" placeholder="Mô tả công dụng">
                     <input id="new-manual" style="grid-column: span 2;" placeholder="Quy trình vận hành">
@@ -261,7 +261,7 @@
                 <div id="history-list"></div>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button class="export" onclick="exportFullHistory()" style="flex:1; padding:12px;">📊 XUẤT FILE EXCEL</button>
+                <button class="export" onclick="exportFullHistory()" style="flex:1;">📊 XUẤT FILE EXCEL</button>
                 <button class="reset" onclick="resetAll()" style="flex:1; border:1px solid #f39c12; color:#f39c12; background:none; border-radius:10px; cursor:pointer;">🔄 RESET HỆ THỐNG</button>
             </div>
         </div>
