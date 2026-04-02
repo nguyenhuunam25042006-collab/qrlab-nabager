@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bảng Điều Khiển Admin - QR Lab Pro</title>
+    <title>NAB LAB PRO - Admin Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
     
@@ -17,163 +17,78 @@
         }
         
         body { 
-            margin: 0; 
-            font-family: 'Segoe UI', sans-serif; 
-            background-color: var(--bg-dark); 
-            color: rgba(255,255,255,0.9); 
-            display: flex; 
-            min-height: 100vh; 
-            overflow-x: hidden; 
+            margin: 0; font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); 
+            color: rgba(255,255,255,0.9); display: flex; min-height: 100vh; overflow-x: hidden; 
         }
 
-        /* SIDEBAR - THANH MENU TRÁI */
+        /* SIDEBAR */
         .sidebar {
-            width: 240px;
-            background: var(--bg-card);
-            border-right: 1px solid var(--glass-border);
-            display: flex;
-            flex-direction: column;
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100%;
-            z-index: 1000;
+            width: 240px; background: var(--bg-card); border-right: 1px solid var(--glass-border);
+            display: flex; flex-direction: column; transition: 0.3s ease;
+            position: fixed; top: 0; left: 0; height: 100%; z-index: 1000;
         }
-
         .sidebar.collapsed { width: 70px; }
 
         .sidebar-header {
-            padding: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--glass-border);
-            height: 60px;
-            box-sizing: border-box;
+            padding: 20px; display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid var(--glass-border); height: 60px; box-sizing: border-box;
         }
-
-        .logo-text {
-            color: var(--admin-neon);
-            font-size: 18px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            white-space: nowrap;
-            transition: 0.3s;
-        }
-
+        .logo-text { color: var(--admin-neon); font-size: 18px; font-weight: bold; transition: 0.3s; white-space: nowrap; }
         .sidebar.collapsed .logo-text { opacity: 0; pointer-events: none; }
 
         .menu-toggle-btn {
-            background: none;
-            border: none;
-            color: var(--admin-neon);
-            font-size: 22px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: 0.3s;
+            background: none; border: none; color: var(--admin-neon);
+            font-size: 22px; cursor: pointer; display: flex; align-items: center;
         }
-
-        .menu-toggle-btn:hover { transform: scale(1.1); text-shadow: 0 0 10px var(--admin-neon); }
 
         .sidebar-menu { padding: 20px 0; flex: 1; }
-
         .tab-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            padding: 15px 22px;
-            background: transparent;
-            color: #888;
-            border: none;
-            border-left: 4px solid transparent;
-            cursor: pointer;
-            transition: 0.3s;
-            font-size: 14px;
+            width: 100%; display: flex; align-items: center; padding: 15px 22px;
+            background: transparent; color: #888; border: none;
+            border-left: 4px solid transparent; cursor: pointer; transition: 0.3s; font-size: 14px;
         }
-
         .tab-btn:hover { background: rgba(255,255,255,0.03); color: white; }
-
         .tab-btn.active {
-            color: var(--admin-neon);
-            border-left-color: var(--admin-neon);
-            background: rgba(46, 204, 113, 0.07);
-            font-weight: bold;
+            color: var(--admin-neon); border-left-color: var(--admin-neon);
+            background: rgba(46, 204, 113, 0.07); font-weight: bold;
         }
-
         .tab-btn .icon { margin-right: 15px; font-size: 18px; width: 20px; text-align: center; }
         .sidebar.collapsed .tab-btn .icon { margin-right: 0; width: 100%; }
-        .tab-btn .text { transition: 0.3s; white-space: nowrap; }
-        .sidebar.collapsed .tab-btn .text { opacity: 0; pointer-events: none; width: 0; }
-
-        .sidebar-footer { padding: 20px; border-top: 1px solid var(--glass-border); }
+        .sidebar.collapsed .tab-btn .text { display: none; }
 
         /* NỘI DUNG CHÍNH */
-        .main-content {
-            flex: 1;
-            margin-left: 240px;
-            padding: 30px;
-            transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
+        .main-content { flex: 1; margin-left: 240px; padding: 30px; transition: 0.3s ease; }
         .main-content.expanded { margin-left: 70px; }
+        .header-title { text-align: center; color: var(--admin-neon); font-size: 24px; font-weight: bold; margin-bottom: 30px; text-transform: uppercase; letter-spacing: 4px; }
 
-        .header-title { 
-            text-align: center; 
-            color: var(--admin-neon); 
-            font-size: 24px; 
-            font-weight: bold; 
-            margin-bottom: 30px; 
-            text-transform: uppercase; 
-            letter-spacing: 4px; 
-            text-shadow: 0 0 15px rgba(46, 204, 113, 0.4); 
-        }
+        .card { background: var(--glass-bg); padding: 25px; border-radius: 20px; border: 1px solid var(--glass-border); margin-bottom: 25px; backdrop-filter: blur(10px); }
+        .card h3 { margin-top: 0; color: var(--admin-neon); border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; font-size: 15px; }
 
-        .card { 
-            background: var(--glass-bg); 
-            padding: 25px; 
-            border-radius: 20px; 
-            border: 1px solid var(--glass-border); 
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4); 
-            margin-bottom: 25px; 
-            backdrop-filter: blur(10px); 
-        }
-
-        .card h3 { margin-top: 0; color: var(--admin-neon); border-bottom: 1px solid var(--glass-border); padding-bottom: 12px; text-transform: uppercase; font-size: 15px; letter-spacing: 1px; }
-
-        /* PHÂN CHIA TABS */
+        /* TAB CONTENT */
         .tab-content { display: none; animation: fadeIn 0.4s ease; }
         .tab-content.active { display: block; }
 
-        /* CSS CŨ ĐÃ TỐI ƯU */
+        /* DEVICES & TABLES */
         .device { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid var(--glass-border); gap: 15px; }
         .device-img { width: 90px; height: 90px; object-fit: cover; border-radius: 12px; border: 1px solid var(--glass-border); }
         .device-qr { width: 90px; height: 90px; background: white; padding: 5px; border-radius: 8px; cursor: zoom-in; }
         
-        .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; border: 1px solid transparent; }
-        .free { background: rgba(46, 204, 113, 0.1); border-color: #2ecc71; color: #2ecc71; }
-        .using { background: rgba(241, 196, 15, 0.1); border-color: #f1c40f; color: #f1c40f; }
-        .broken { background: rgba(231, 76, 60, 0.1); border-color: #e74c3c; color: #e74c3c; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+        .free { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid #2ecc71; }
+        .using { background: rgba(241, 196, 15, 0.1); color: #f1c40f; border: 1px solid #f1c40f; }
+        .broken { background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid #e74c3c; }
+
+        input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 12px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: var(--admin-neon); }
+        .btn-main { background: linear-gradient(45deg, var(--admin-neon), #27ae60); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; }
 
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
         th { text-align: left; padding: 12px; color: #f39c12; border-bottom: 1px solid rgba(243, 156, 18, 0.2); }
         td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
-        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; backdrop-filter: blur(10px); }
-        .modal-content { background: white; padding: 30px; border-radius: 25px; text-align: center; color: #333; animation: zoomIn 0.3s ease; }
+        .modal { display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 30px; border-radius: 25px; text-align: center; color: #333; }
         
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes zoomIn { from { transform: scale(0.8); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .sidebar { left: -240px; }
-            .sidebar.open { left: 0; }
-            .main-content { margin-left: 0 !important; padding: 15px; }
-        }
     </style>
 </head>
 <body>
@@ -198,7 +113,7 @@
             </button>
         </div>
         <div class="sidebar-footer">
-            <button class="logout-btn" onclick="logout()" style="width:100%; background:rgba(231, 76, 60, 0.1); color:#e74c3c; border:1px solid #e74c3c; border-radius:10px; padding:10px; cursor:pointer;">🚪 ĐĂNG XUẤT</button>
+            <button onclick="logout()" style="width:100%; background:none; color:#e74c3c; border:1px solid #e74c3c; border-radius:10px; padding:10px; cursor:pointer;">🚪 ĐĂNG XUẤT</button>
         </div>
     </div>
 
@@ -207,9 +122,7 @@
 
         <div id="tab-dashboard" class="tab-content active">
             <div class="card" style="display: flex; gap: 30px; align-items: center; justify-content: center; flex-wrap: wrap;">
-                <div style="width: 150px; height: 150px;">
-                    <canvas id="adminChart"></canvas>
-                </div>
+                <div style="width: 150px; height: 150px;"><canvas id="adminChart"></canvas></div>
                 <div id="quick-stats" style="line-height: 2; font-size: 14px;">Đang tải dữ liệu...</div>
             </div>
         </div>
@@ -220,11 +133,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                     <input id="new-id" placeholder="Mã ID (VD: TB011)">
                     <input id="new-name" placeholder="Tên thiết bị">
-                    <input id="new-image" style="grid-column: span 2;" placeholder="Link ảnh trực tuyến (URL)">
+                    <input id="new-image" style="grid-column: span 2;" placeholder="Link ảnh online (URL)">
                     <input id="new-usage" style="grid-column: span 2;" placeholder="Mô tả công dụng">
                     <input id="new-manual" style="grid-column: span 2;" placeholder="Quy trình vận hành">
                 </div>
-                <button class="export" onclick="updateDeviceSystem()" style="width:100%; margin-top:15px; padding:15px;">🚀 CẬP NHẬT HỆ THỐNG</button>
+                <button class="btn-main" onclick="updateDeviceSystem()">🚀 CẬP NHẬT HỆ THỐNG</button>
             </div>
             <div class="card">
                 <h3>📋 DANH SÁCH THIẾT BỊ</h3>
@@ -235,11 +148,13 @@
 
         <div id="tab-booking" class="tab-content">
             <div class="card">
-                <h3>📅 DANH SÁCH ĐĂNG KÝ SỬ DỤNG</h3>
+                <h3>📅 DUYỆT LỊCH ĐĂNG KÝ</h3>
                 <div style="overflow-x: auto;">
                     <table>
                         <thead>
-                            <tr><th>THIẾT BỊ</th><th>NGƯỜI DÙNG</th><th>LỊCH ĐẶT</th><th>DỰ KIẾN</th></tr>
+                            <tr>
+                                <th>THIẾT BỊ</th><th>NGƯỜI DÙNG</th><th>LỊCH ĐẶT</th><th>DỰ KIẾN</th><th>THAO TÁC</th>
+                            </tr>
                         </thead>
                         <tbody id="booking-table-content"></tbody>
                     </table>
@@ -253,8 +168,8 @@
                 <div id="history-list"></div>
             </div>
             <div style="display: flex; gap: 10px;">
-                <button class="export" onclick="exportFullHistory()" style="flex:1;">📊 XUẤT FILE EXCEL</button>
-                <button class="reset" onclick="resetAll()" style="flex:1; border:1px solid #f39c12; color:#f39c12; background:none; border-radius:10px; cursor:pointer;">🔄 RESET HỆ THỐNG</button>
+                <button class="btn-main" onclick="exportFullHistory()" style="flex:1;">📊 XUẤT EXCEL</button>
+                <button onclick="resetAll()" style="flex:1; border:1px solid #f39c12; color:#f39c12; background:none; border-radius:10px; cursor:pointer;">🔄 RESET DỮ LIỆU</button>
             </div>
         </div>
     </div>
@@ -262,15 +177,13 @@
     <div id="qrModal" class="modal" onclick="closeQR()">
         <div class="modal-content" onclick="event.stopPropagation()">
             <h2 id="modal-name">ID THIẾT BỊ</h2>
-            <div id="big-qr" style="display:inline-block; margin: 20px;"></div>
-            <button onclick="closeQR()" style="width:100%; padding:12px; background:#000; color:#fff; border:none; border-radius:10px; cursor:pointer;">ĐÓNG</button>
+            <div id="big-qr" style="margin: 20px;"></div>
+            <button onclick="closeQR()" style="width:100%; padding:12px; background:#000; color:#fff; border-radius:10px; border:none; cursor:pointer;">ĐÓNG</button>
         </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
-    
     <script src="admin_script.js"></script>
-
 </body>
 </html>
