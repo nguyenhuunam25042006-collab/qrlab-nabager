@@ -156,7 +156,7 @@ function updateDeviceSystem() {
     });
 }
 
-// HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI
+// HÀM MỚI 2: THỐNG KÊ BIỂU ĐỒ TRẠNG THÁI (FIX LỖI CHIA CHO 0)
 function updateAdminStats() {
     let u=0, f=0, b=0;
     let deviceCount = Object.keys(devices).length;
@@ -170,7 +170,7 @@ function updateAdminStats() {
     if(statsDiv) {
         statsDiv.innerHTML = `
             • Hiệu suất Lab: <b style="color:#2ecc71;">${Math.round((u/deviceCount)*100) || 0}%</b><br>
-            • Đang dùng: <b style="color:#f1c40f;">${u} máy</b><br>
+            • Đang vận hành: <b style="color:#f1c40f;">${u} máy</b><br>
             • Sẵn sàng phục vụ: <b style="color:#00f2fe;">${f} máy</b>
         `;
     }
@@ -198,34 +198,52 @@ function renderHistory() {
     `).join("");
 }
 
+// === PHẦN ĐẮP THÊM: DUYỆT & TỪ CHỐI LỊCH ===
+function approveBooking(id, index) {
+    let q = JSON.parse(localStorage.getItem("queues"));
+    if(confirm("Duyệt cho sinh viên này sử dụng máy?")) {
+        q[id][index].status = "Đã duyệt";
+        db.ref('queues').set(q);
+    }
+}
+
+function rejectBooking(id, index) {
+    let q = JSON.parse(localStorage.getItem("queues"));
+    if(confirm("Từ chối yêu cầu đặt lịch này?")) {
+        q[id].splice(index, 1);
+        db.ref('queues').set(q);
+    }
+}
+
 function renderBookingTable() {
     let queues = JSON.parse(localStorage.getItem("queues")) || {};
     let tableBody = document.getElementById("booking-table-content");
     if (!tableBody) return;
-    let allBookings = [];
+    let html = "";
     Object.entries(queues).forEach(([deviceId, list]) => {
-        list.forEach(item => {
-            allBookings.push({
-                deviceName: devices[deviceId]?.name || deviceId,
-                userName: item.userName,
-                bookTime: item.bookTime,
-                estimated: item.estimated
-            });
+        list.forEach((item, index) => {
+            let actionButtons = (item.status === "Chờ duyệt" || !item.status) ? 
+                `<button onclick="approveBooking('${deviceId}', ${index})" style="background:#27ae60; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px;">Duyệt</button>
+                 <button onclick="rejectBooking('${deviceId}', ${index})" style="background:#e74c3c; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; font-size:11px; margin-left:4px;">Hủy</button>` : 
+                `<b style="color:#2ecc71;">${item.status}</b>`;
+
+            html += `<tr>
+                <td style="color:#f39c12;">${devices[deviceId]?.name || deviceId}</td>
+                <td>${item.userName}</td>
+                <td style="color:#2ecc71;">${item.bookTime}</td>
+                <td>${item.estimated}</td>
+                <td>${actionButtons}</td>
+            </tr>`;
         });
     });
-    if (allBookings.length === 0) {
-        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#888;'>Trống</td></tr>";
-        return;
+
+    if (html === "") {
+        tableBody.innerHTML = "<tr><td colspan='5' style='text-align:center; color:#888;'>Trống</td></tr>";
+    } else {
+        tableBody.innerHTML = html;
     }
-    tableBody.innerHTML = allBookings.map(b => `
-        <tr>
-            <td style="color:#f39c12;">${b.deviceName}</td>
-            <td>${b.userName}</td>
-            <td style="color:#2ecc71;">${b.bookTime}</td>
-            <td>${b.estimated}</td>
-        </tr>
-    `).join("");
 }
+// =========================================
 
 function zoomQR(id, name) {
     const modalName = document.getElementById("modal-name");
@@ -257,9 +275,7 @@ function resetAll() {
     if(confirm("Xác nhận reset toàn bộ hệ thống? Việc này sẽ xóa sạch nhật ký!")) {
         // 1. Reset trạng thái máy cục bộ
         Object.keys(devices).forEach(id => { 
-            devices[id].status = "Trống"; 
-            devices[id].user = ""; 
-            devices[id].total = 0; 
+            devices[id].status = "Trống"; devices[id].user = ""; devices[id].total = 0; 
         });
 
         // 2. XÓA LOCALSTORAGE (Để xóa sạch nhật ký hiện tại trên trình duyệt)
